@@ -1,0 +1,9 @@
+## Packages added by developer
+Flask==0.12.2
+## The following requirements were added by pip freeze:
+click==6.7
+itsdangerous==0.24
+Jinja2==2.10
+MarkupSafe==1.0
+pkg-resources==0.0.0
+Werkzeug==0.12.2
