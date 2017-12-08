@@ -1,5 +1,4 @@
 ## Packages added by developer
-Flask
 requests
 requests-cache
 beautifulsoup4

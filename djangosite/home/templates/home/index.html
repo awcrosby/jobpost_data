@@ -1,0 +1,12 @@
+{% extends 'home/layout.html' %} {% block content %}
+
+<h4 class="center-align blue lighten-3">{{ title }}</h4>
+
+{% for result in results %}
+    <h3>{{ result.name }}</h3>
+    {% for word in result.data %}
+        <span style="font-size:{{ word.1 }}px">{{ word.0 }}</span>
+    {% endfor %}
+{% endfor %}
+
+{% endblock %}
