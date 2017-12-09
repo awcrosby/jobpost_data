@@ -13,18 +13,54 @@ import string
 #import nltk  # nltk.download('stopwords')
 from nltk.corpus import stopwords
 import collections
+import textblob
 
+client = pymongo.MongoClient('localhost', 27017)
+db = client.py_posts
+#import pdb; pdb.set_trace()  #### DEBUG
 
 # Create your views here.
 def index(request):
-    client = pymongo.MongoClient('localhost', 27017)
-    db = client.py_posts
-
     ''' SCRAPING SECTION '''
     #search_dice(query='python', zipcode='27606')
 
-
     ''' TEXT PROCCESSING SECTION '''
+    results = []
+    results.append({'title': 'noun phrases (desc)', 'data': get_noun_phrases('desc')})
+    results.append({'title': 'noun phrases (skills)', 'data': get_noun_phrases('skills')})
+    results.append({'title': 'noun phrases (skills)', 'data': single_word_count('skills')})
+
+
+    context = {'title': 'Multi-Processing Results',
+               'results': results}
+    return render(request, 'home/index.html', context)
+
+
+def get_noun_phrases(field):
+    cur = db.posts.find({}, {'desc': 1, 'skills': 1, '_id': 0})
+    allphrases = []
+    for i in cur:
+        blob = textblob.TextBlob(i[field])
+        wordlist = blob.noun_phrases
+        allphrases.extend(wordlist)
+
+    count = collections.Counter(allphrases)
+    return count.most_common(30)
+
+
+def single_word_count(field):
+    cur = db.posts.find({}, {'desc': 1, 'skills': 1, '_id': 0})
+    allwords = []
+    for i in cur:
+        blob = textblob.TextBlob(i[field])
+        wordlist = blob.words
+        allwords.extend(wordlist)
+
+    count = collections.Counter(allphrases)
+    return count.most_common(30)
+
+
+def Xsingle_word_count(field):
     # get all skills as one text blob
     start = time.time()
     print('starting db query')
@@ -40,14 +76,13 @@ def index(request):
     punctuation = '!"#$%&\'()*,-./:;<=>?@[\\]^_`{|}~'  # not + (ie C++)
     replace_punc = str.maketrans(punctuation, ' '*len(punctuation))
 
-    # turn each dict textblob into list of words
+    # for each dict, remove punctation
     for text in alltext:
-        # do lambda + set edits here: https://gist.github.com/ameyavilankar/10347201
-        # see if any benefit here: http://www.cs.duke.edu/courses/spring14/compsci290/assignments/lab02.html
         alltext[text] = alltext[text].lower()
         alltext[text] = alltext[text].translate(replace_punc)
     print('completed replace_punc: {:.3f}s'.format(time.time()-start))
 
+    # for each dict, make list of words
     for text in alltext:
         tokens = alltext[text].split()
         stops = set(stopwords.words('english'))  # speed up from 9s to 9ms
@@ -58,26 +93,12 @@ def index(request):
     results = []
     for words in alltext:
         result = {}
-        result['name'] = words
+        result['title'] = words
         count = collections.Counter(alltext[words])
         result['data'] = count.most_common(20)
         results += [result]
-        result['font_ref'] = result['data'][0][1]
 
-    # skills_count = collections.Counter(alltext['skills'])
-    # skills_results = skills_count.most_common(20)
-    #
-    # desc_count = collections.Counter(alltext['desc'])
-    # desc_results = desc_count.most_common(20)
     print('completed counts: {:.3f}s'.format(time.time()-start))
-
-
-    #import pdb; pdb.set_trace()  #### DEBUG
-
-    context = {'title': 'post subset',
-               'results': results}
-    return render(request, 'home/index.html', context)
-
 
 
 def search_dice(query, zipcode):

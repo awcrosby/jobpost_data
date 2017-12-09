@@ -1,12 +1,14 @@
 {% extends 'home/layout.html' %} {% block content %}
-
+{% load my_filters %}
 <h4 class="center-align blue lighten-3">{{ title }}</h4>
 
 {% for result in results %}
-    <h3>{{ result.name }}</h3>
-    {% for word in result.data %}
-        <span style="font-size:{{ word.1 }}px">{{ word.0 }}</span>
-    {% endfor %}
+    {% with max_font=result.data.0.1 %}
+        <h3>{{ result.title }}</h3>
+        {% for word in result.data %}
+            <span style="font-size:{{ word.1|rel_font:max_font }}px">{{ word.0 }}({{ word.1 }})</span>
+        {% endfor %}
+    {% endwith %}
 {% endfor %}
 
 {% endblock %}
