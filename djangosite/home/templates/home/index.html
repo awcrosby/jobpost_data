@@ -6,7 +6,8 @@
     {% with max_font=result.data.0.1 %}
         <h3>{{ result.title }}</h3>
         {% for word in result.data %}
-            <span style="font-size:{{ word.1|rel_font:max_font }}px">{{ word.0 }}({{ word.1 }})</span>
+            <!-- <span style="font-size:{{ word.1|rel_font:max_font }}px">{{ word.0 }}({{ word.1 }})</span> -->
+            <span>{{ word.0 }}({{ word.1 }})</span>
         {% endfor %}
     {% endwith %}
 {% endfor %}

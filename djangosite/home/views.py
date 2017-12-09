@@ -19,6 +19,11 @@ client = pymongo.MongoClient('localhost', 27017)
 db = client.py_posts
 #import pdb; pdb.set_trace()  #### DEBUG
 
+# # create punctation translation
+# punctuation = '!"#$%&\'()*,-./:;<=>?@[\\]^_`{|}~'  # not + (ie C++)
+# replace_punc = str.maketrans(punctuation, ' '*len(punctuation))
+# alltext[text] = alltext[text].translate(replace_punc)
+
 # Create your views here.
 def index(request):
     ''' SCRAPING SECTION '''
@@ -28,8 +33,8 @@ def index(request):
     results = []
     results.append({'title': 'noun phrases (desc)', 'data': get_noun_phrases('desc')})
     results.append({'title': 'noun phrases (skills)', 'data': get_noun_phrases('skills')})
-    results.append({'title': 'noun phrases (skills)', 'data': single_word_count('skills')})
-
+    results.append({'title': 'single word (skills)', 'data': single_word_count('skills')})
+    results.append({'title': 'single word (desc)', 'data': single_word_count('desc')})
 
     context = {'title': 'Multi-Processing Results',
                'results': results}
@@ -51,54 +56,15 @@ def get_noun_phrases(field):
 def single_word_count(field):
     cur = db.posts.find({}, {'desc': 1, 'skills': 1, '_id': 0})
     allwords = []
+    stops = set(stopwords.words('english'))  # speed up from 9s to 9ms
     for i in cur:
         blob = textblob.TextBlob(i[field])
         wordlist = blob.words
+        wordlist = [w for w in wordlist if not w in stops]
         allwords.extend(wordlist)
 
-    count = collections.Counter(allphrases)
+    count = collections.Counter(allwords)
     return count.most_common(30)
-
-
-def Xsingle_word_count(field):
-    # get all skills as one text blob
-    start = time.time()
-    print('starting db query')
-    alltext = {}
-    cur = db.posts.find({}, {'desc': 1, 'skills': 1, '_id': 0})
-    for i in cur:
-        alltext['desc'] = alltext.get('desc', '') + ' ' + i['desc']
-        alltext['skills'] = alltext.get('skills', '') + ' ' + i['skills']
-    # posts = Posts.objects.all() ... for p in posts: ... p.data['desc']
-    print('completed dbquery: {:.3f}s'.format(time.time()-start))
-
-    # create punctation translation
-    punctuation = '!"#$%&\'()*,-./:;<=>?@[\\]^_`{|}~'  # not + (ie C++)
-    replace_punc = str.maketrans(punctuation, ' '*len(punctuation))
-
-    # for each dict, remove punctation
-    for text in alltext:
-        alltext[text] = alltext[text].lower()
-        alltext[text] = alltext[text].translate(replace_punc)
-    print('completed replace_punc: {:.3f}s'.format(time.time()-start))
-
-    # for each dict, make list of words
-    for text in alltext:
-        tokens = alltext[text].split()
-        stops = set(stopwords.words('english'))  # speed up from 9s to 9ms
-        alltext[text] = [w for w in tokens if not w in stops]
-    print('completed split: {:.3f}s'.format(time.time()-start))
-
-    # count each list of words
-    results = []
-    for words in alltext:
-        result = {}
-        result['title'] = words
-        count = collections.Counter(alltext[words])
-        result['data'] = count.most_common(20)
-        results += [result]
-
-    print('completed counts: {:.3f}s'.format(time.time()-start))
 
 
 def search_dice(query, zipcode):
