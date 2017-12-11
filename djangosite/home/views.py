@@ -17,6 +17,8 @@ import textblob
 
 client = pymongo.MongoClient('localhost', 27017)
 db = client.py_posts
+db.posts.create_index('url', unique=True)
+#db.posts.drop_index('url_1')
 #import pdb; pdb.set_trace()  #### DEBUG
 
 # # create punctation translation
@@ -31,14 +33,32 @@ def index(request):
 
     ''' TEXT PROCCESSING SECTION '''
     results = []
-    results.append({'title': 'noun phrases (desc)', 'data': get_noun_phrases('desc')})
-    results.append({'title': 'noun phrases (skills)', 'data': get_noun_phrases('skills')})
-    results.append({'title': 'single word (skills)', 'data': single_word_count('skills')})
-    results.append({'title': 'single word (desc)', 'data': single_word_count('desc')})
+    # results.append({'title': 'noun phrases (desc)', 'data': get_noun_phrases('desc')})
+    # results.append({'title': 'noun phrases (skills)', 'data': get_noun_phrases('skills')})
+    # results.append({'title': 'single word (desc)', 'data': single_word_count('desc')})
+    results.append({'title': 'ngram-2 (skills)', 'data': get_ngrams('skills', 2)})
+    results.append({'title': 'ngram-3 (skills)', 'data': get_ngrams('skills', 3)})
 
-    context = {'title': 'Multi-Processing Results',
-               'results': results}
+    results.append({'title': 'single word (skills)', 'data': single_word_count('skills')})
+
+    context = {'title': 'Multi-Processing Results', 'results': results}
     return render(request, 'home/index.html', context)
+
+
+def get_ngrams(field, n):
+    cur = db.posts.find({}, {'desc': 1, 'skills': 1, '_id': 0})
+    allwordstrings = []
+    for i in cur:
+        blob = textblob.TextBlob(i[field])
+        ngrams = blob.ngrams(n)
+        for ngram in ngrams:
+            wordstring = ''
+            for word in ngram:
+                wordstring += word + ' '
+            allwordstrings.append(wordstring)
+
+    count = collections.Counter(allwordstrings)
+    return count.most_common(30)
 
 
 def get_noun_phrases(field):
@@ -60,7 +80,7 @@ def single_word_count(field):
     for i in cur:
         blob = textblob.TextBlob(i[field])
         wordlist = blob.words
-        wordlist = [w for w in wordlist if not w in stops]
+        wordlist = [w.lower() for w in wordlist if not w in stops]
         allwords.extend(wordlist)
 
     count = collections.Counter(allwords)
@@ -92,8 +112,11 @@ def search_dice(query, zipcode):
         divs = soup.find_all('div', 'complete-serp-result-div')
         joblinks += [d.find('a', 'dice-btn-link')['href'] for d in divs]
 
+    # cleanjoblinks = [j.split('?')[0] for j in joblinks]
+    # s = set(cleanjoblinks)
+    # import pdb; pdb.set_trace()  #### DEBUG
+
     # get all job dicts and put into jobs list
-    jobs = []
     for joblink in joblinks:
         r = requests.get(base_url + joblink)
         text = re.sub('</br>', ' ', r.text)
@@ -106,15 +129,15 @@ def search_dice(query, zipcode):
         job['company'] = soup.find('span', {'itemprop': 'name'}).text
         job['query'] = query
         job['zipcode'] = zipcode
-        # job['timestamp'] = datetime.utcnow()
+        job['timestamp'] = datetime.utcnow()
 
         # get summary info in icons
         icons = soup.find_all('div', 'iconsiblings')
         job['skills'] = icons[0].text.strip()
         job['empType'] = icons[1].text.strip()
         job['baseSalary'] = icons[2].text.strip()
-        job['teleTravel'] = " ".join(
-            [s.text for s in icons[3].find_all('span')])
+        #job['teleTravel'] = " ".join(
+        #    [s.text for s in icons[3].find_all('span')])
 
         # get job description
         div = soup.find('div', {'id': 'jobdescSec'})
@@ -134,7 +157,5 @@ def search_dice(query, zipcode):
         job['positionId'] = positionId
         job['url'] = base_url + joblink.split('?')[0]
 
-        # append job dict to jobs list
-        jobs += [job]
-
-    db.posts.insert_many(jobs)
+        # insert or update job into database
+        db.posts.update( {'url': job['url'] }, job, upsert=True )
