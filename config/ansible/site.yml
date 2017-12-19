@@ -1,0 +1,57 @@
+- hosts: myhost  # playbook to setup system as root
+  vars:
+    dest_proj_path: /vagrant
+  tasks:
+    # - name: Updates package lists for upgrades/new pkg, then upgrades all current packages to the latest version
+    #   become: true
+    #   apt: upgrade=dist update_cache=yes
+    # - name: Install latest version of packages
+    #   become: true
+    #   package: name="{{item}}" state=latest
+    #   with_items:
+    #     - python3-pip
+    #     - virtualenv
+    #     - python3-dev
+    #     - libpq-dev
+    #     - postgresql
+    #     - postgresql-contrib
+    #     - python3-psycopg2
+    # - name: Add mongodb repo apt_key
+    #   become: true
+    #   apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+    # - name: Add mongodb sources list
+    #   become: true
+    #   shell: "echo 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.6 multiverse' | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list"
+    #   changed_when: false
+    # - name: Update repositories cache and install "mongodb-org" package
+    #   become: true
+    #   apt: name=mongodb-org update_cache=yes
+    # - name: Start and enable mongod service
+    #   become: true
+    #   service: name=mongod state=started enabled=yes
+    # - name: Create virtual environment and install pip packages
+    #   pip:
+    #     requirements: "{{ dest_proj_path }}/requirements.txt"
+    #     virtualenv: "{{ dest_proj_path }}/venv"
+    - name: Create a new postgresql database
+      become: true
+      become_user: postgres
+      postgresql_db:
+        name: jobpost_data
+    - name: Create new postgresql user
+      become: true
+      become_user: postgres
+      postgresql_user:
+        db: jobpost_data
+        name: django
+        password: 85I7A1SjZy4q
+    - name: Turn off bell in terminal
+      lineinfile:
+        path: /etc/inputrc
+        state: present
+        line: 'set bell-style visible'
+    - name: Create symlink for vim settings
+      file:
+        src: "{{ dest_proj_path }}/config/.vimrc"
+        dest: ~/.vimrc
+        state: link

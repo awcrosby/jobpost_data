@@ -1,3 +1,11 @@
+# Vagrant #
+###################
+.vagrant/
+Vagrantfile
+ubuntu-xenial-16.04-cloudimg-console.log
+
+# Other #
+###################
 venv/
-vagrant/
 __pycache__/
+config/ansible/site.retry

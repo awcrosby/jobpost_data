@@ -1,6 +1,9 @@
 ## Packages added by developer
+django
+psycopg2
+pymongo
 requests
 requests-cache
 beautifulsoup4
-pymongo
+textblob
 nltk
