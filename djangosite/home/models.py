@@ -3,16 +3,29 @@ from datetime import datetime
 from django.contrib.postgres.fields import JSONField
 
 # Create your models here.
-class SqlTest(models.Model):
-    title = models.CharField(max_length=200)
-    body = models.TextField()
-    created_at = models.DateTimeField(default=datetime.now, blank=True)
+class QueryLoc(models.Model):
+    # Model representing the locations that can can be queried
+    name = models.CharField(max_length=50)
+    query = models.CharField(max_length=50)
+    def __str__(self):  # string to represent Model object in admin
+        return self.name
 
+class JobSite(models.Model):
+    # Model representing the job sites that can scraper can query
+    name = models.CharField(max_length=50)
+    url = models.CharField(max_length=50)
+    def __str__(self):  # string to represent Model object in admin
+        return self.name
 
-class Posts(models.Model):
-    data = JSONField()
-    created_at = models.DateTimeField(default=datetime.now, blank=True)
-    def __str__(self):
-        return self.data['title']
+class ScraperParams(models.Model):
+    # Model representing params used to scrape for job postings
+    query = models.CharField(max_length=50, blank=True)
+    job_site = models.ForeignKey(JobSite, on_delete=models.SET_NULL, null=True)
+    query_loc = models.ForeignKey(QueryLoc, on_delete=models.SET_NULL, null=True)
+    last_queried = models.DateTimeField(null=True, blank=True)
+    def __str__(self):  # string to represent Model object in admin
+        return '{} q="{}" in {}, last queried: {}'.format(self.job_site.name,
+            self.query, self.query_loc.name, self.last_queried)
+        # return '{} in {}'.format(self.job_site.name, self.query_loc.name)
     class Meta:
-        verbose_name_plural = "Posts"
+        verbose_name_plural = "Scraper params"

@@ -1,7 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from .models import Posts
-from .forms import NameForm
+from .forms import UserQueryForm, ScraperForm
 
 import requests
 from bs4 import BeautifulSoup
@@ -22,53 +21,59 @@ import itertools
 import sys
 
 
-# db init and config
+# mongod db init and config
 client = pymongo.MongoClient('localhost', 27017)
 db = client.py_posts
 db.posts.create_index('url', unique=True)
 db.posts.create_index('skills')
-# db.posts.create_index([('locquery', 1),('title', pymongo.TEXT),
+# db.posts.create_index([('query_loc', 1),('title', pymongo.TEXT),
 #                 ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
-db.posts.create_index([('locquery', 1),('title', pymongo.TEXT), ('skills', pymongo.TEXT)])
+db.posts.create_index([('query_loc', 1),('title', pymongo.TEXT), ('skills', pymongo.TEXT)])
 #db.posts.index_information()
-#db.posts.drop_index('url_1')
+#db.posts.drop_index('query_loc_1_title_text_skills_text')
 #import pdb; pdb.set_trace()  #### DEBUG
 stops = set(stopwords.words('english'))
 #stops.add('python')
 stops.add('experience')
 
 # Create your views here.
-def get_name(request):
-    if request.method == 'GET':
-        form = NameForm(request.GET)  # populate form with data from request
-        if form.is_valid():
-            print('inside form.is_valid()')
-            # process the data in form.cleaned_data as required
+def scraper(request):
+    if request.method == 'POST':
+        form = ScraperForm(request.POST)  # populate form with data from request
+        if form.is_valid():   # process the data in form.cleaned_data
+            query_loc = form.cleaned_data['scraper_params'].query_loc.query
+            query = form.cleaned_data['scraper_params'].query
+            print(form.cleaned_data['scraper_params'])
+            if form.cleaned_data['scraper_params'].job_site.name == "Dice":
+                num_items = None
+                #num_items = search_dice(query=query, query_loc=query_loc)
+            if not num_items:
+                form.cleaned_data['scraper_params'].last_queried = datetime.utcnow()
         else:
-            form = NameForm()
-    else:  # if not GET, then create a new form
-        form = NameForm()
+            form = ScraperForm()
+    else:  # if not POST, then create a new form
+        form = ScraperForm()
 
-    return render(request, 'home/name.html', {'form': form})
+    return render(request, 'home/scraper.html', {'form': form})
 
 
 def index(request):
     if request.method != 'GET':
         return render(request, 'home/name.html')  #fix this
-    form = NameForm(request.GET)  # populate form with data from request
+    form = UserQueryForm(request.GET)  # populate form with data from request
     if not form.is_valid():
-        form = NameForm()
+        form = UserQueryForm()
         context = {'title': 'enter query', 'results': [], 'form': form}
         return render(request, 'home/index.html', context)
 
     ''' SCRAPING SECTION '''
-    #search_dice(query='', locquery='baltimore, md')
+    #search_dice(query='', query_loc='baltimore, md')
     #get_stackoverflow_skills()
 
     ''' TEXT PROCCESSING SECTION '''
     query = form.cleaned_data['query']
-    locquery = form.cleaned_data['location']
-    dataset = db_text_search(query, locquery)
+    query_loc = form.cleaned_data['location']
+    dataset = db_text_search(query, query_loc)
 
     results = []
     results.append({'title': 'single word', 'data': single_word_count(dataset)})
@@ -88,13 +93,13 @@ def index(request):
     #            'colors': colors}
     # return render(request, 'home/chord.html', context)
     title = '{} job posts matching "{}" in {}'.format(
-            len(dataset), query, locquery)
+            len(dataset), query, query_loc)
     context = {'title': title, 'results': results, 'form': form}
     return render(request, 'home/index.html', context)
 
 
-def db_text_search(query, locquery):
-    cur = db.posts.find({'locquery': locquery,
+def db_text_search(query, query_loc):
+    cur = db.posts.find({'query_loc': query_loc,
                          '$text': {'$search': query}})
     return [doc for doc in cur]
 
@@ -234,24 +239,24 @@ def get_stackoverflow_skills():
     db.skills.update( {'source': 'stackoverflow'}, data, upsert=True )
 
 
-def search_dice(query, locquery):
+def search_dice(query, query_loc):
     # query format is 'python_developer'
-    def page_url(query, locquery, pagenum):
+    def page_url(query, query_loc, pagenum):
         q = urllib.parse.urlencode({'q': query}).split('=')[1]
-        loc = urllib.parse.urlencode({'loc': locquery}).split('=')[1]
+        loc = urllib.parse.urlencode({'loc': query_loc}).split('=')[1]
         url = ('/jobs/q-{}-pc-true-'.format(q) +
                'l-{}-radius-30-startPage-{}-jobs'.format(loc, pagenum))
         return url
 
     # get initial search results to find num of posts and pages
     base_url = 'https://www.dice.com'
-    r = requests.get(base_url + page_url(query, locquery, 1))
+    r = requests.get(base_url + page_url(query, query_loc, 1))
     soup = BeautifulSoup(r.text, 'html.parser')
 
     # get pagelinks
     npost = int(soup.find('span', {'id': 'posiCountId'}).text.replace(',', ''))
     npage = math.ceil(npost/30)  # dice has 30 posts/page
-    pagelinks = [page_url(query, locquery, n+1) for n in range(npage)]
+    pagelinks = [page_url(query, query_loc, n+1) for n in range(npage)]
 
     # gather joblinks from each page
     joblinks = []
@@ -262,10 +267,6 @@ def search_dice(query, locquery):
         joblinks += [d.find('a', 'dice-btn-link')['href'] for d in divs]
         print(page)
 
-    # cleanjoblinks = [j.split('?')[0] for j in joblinks]
-    # s = set(cleanjoblinks)
-    # import pdb; pdb.set_trace()  #### DEBUG
-
     # get all job dicts and put into jobs list
     for joblink in joblinks:
         r = requests.get(base_url + joblink)
@@ -274,7 +275,7 @@ def search_dice(query, locquery):
 
         # set query data
         job['query'] = query.lower()
-        job['locquery'] = locquery.lower()
+        job['query_loc'] = query_loc.lower()
         job['timestamp'] = datetime.utcnow()
         job['url'] = base_url + joblink.split('?')[0]
 
@@ -336,3 +337,5 @@ def search_dice(query, locquery):
         except pymongo.errors.WriteError as e:
             print('WriteError, likely [skills] key too large: {}'.format(e))
             print("job['url']: {}".format(job['url']))
+
+    return len(joblinks)
