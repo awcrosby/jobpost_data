@@ -77,9 +77,9 @@ WSGI_APPLICATION = 'djangosite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'py_posts',
-        'USER': 'awc',
-        'PASSWORD': 'vldgeF69Fvx',
+        'NAME': 'jobpost_data',
+        'USER': 'django',
+        'PASSWORD': '85I7A1SjZy4q',
         'HOST': 'localhost',
         'PORT': '',
     }

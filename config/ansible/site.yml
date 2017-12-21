@@ -1,6 +1,10 @@
+---
+
 - hosts: myhost  # playbook to setup system as root
   vars:
     dest_proj_path: /vagrant
+  vars_files:
+    - vars.yml
   tasks:
     # - name: Updates package lists for upgrades/new pkg, then upgrades all current packages to the latest version
     #   become: true
@@ -12,10 +16,7 @@
     #     - python3-pip
     #     - virtualenv
     #     - python3-dev
-    #     - libpq-dev
-    #     - postgresql
-    #     - postgresql-contrib
-    #     - python3-psycopg2
+
     # - name: Add mongodb repo apt_key
     #   become: true
     #   apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
@@ -29,22 +30,43 @@
     # - name: Start and enable mongod service
     #   become: true
     #   service: name=mongod state=started enabled=yes
+
     # - name: Create virtual environment and install pip packages
     #   pip:
     #     requirements: "{{ dest_proj_path }}/requirements.txt"
     #     virtualenv: "{{ dest_proj_path }}/venv"
-    - name: Create a new postgresql database
+
+    ### PostgreSQL config: http://blog.apcelent.com/using-ansible-to-set-up-postgresql.html
+    - name: Install PostgreSQL
+      become: true
+      package: name="{{item}}" state=latest
+      with_items:
+        - postgresql
+        - postgresql-contrib
+        - libpq-dev
+        - python3-psycopg2
+    - name: Ensure the postgres service is running
+      become: true
+      service: name=postgresql state=started enabled=yes
+
+    - name: Ensure postgres db is created
       become: true
       become_user: postgres
-      postgresql_db:
-        name: jobpost_data
-    - name: Create new postgresql user
+      postgresql_db: name={{ postgres_name }}
+                 encoding='UTF-8'
+                 lc_collate='en_US.UTF-8'
+                 lc_ctype='en_US.UTF-8'
+                 template='template0'
+                 state=present
+    - name: Ensure user created and can access db
       become: true
       become_user: postgres
-      postgresql_user:
-        db: jobpost_data
-        name: django
-        password: 85I7A1SjZy4q
+      postgresql_user: db={{ postgres_name }}
+                   name={{ postgres_user }}
+                   password={{ postgres_pw }}
+                   priv=ALL
+                   state=present
+
     - name: Turn off bell in terminal
       lineinfile:
         path: /etc/inputrc

@@ -11,7 +11,8 @@ import time
 import re
 import pymongo
 import string
-#import nltk  # nltk.download('stopwords')
+import nltk
+nltk.download('stopwords')
 from nltk.corpus import stopwords
 import collections
 import textblob
