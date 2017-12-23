@@ -1,12 +1,11 @@
 {% extends 'home/layout.html' %}
 {% block content %}
 
+<p>Select parameters for scraper to use:</p>
 <form action="" method="post">
     {% csrf_token %}
     {{ form }}
     <input type="submit" value="Start Scraper" />
 </form>
-
-<h4 class="center-align blue lighten-3">{{ title }}</h4>
 
 {% endblock %}

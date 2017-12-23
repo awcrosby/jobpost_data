@@ -9,16 +9,14 @@
     <input type="submit" value="Submit" />
 </form>
 
-<h4 class="center-align blue lighten-3">{{ title }}</h4>
+<!-- <h4 class="center-align blue lighten-3">{{ title }}</h4> -->
+<div style="margin: 20px 0px 10px 0px; font-weight: bold;">{{ title }}</div>
 
-{% for result in results %}
-    {% with max_font=result.data.0.1 %}
-        <h3>{{ result.title }}</h3>
-        {% for word in result.data %}
-            <span style="font-size:{{ word.1|rel_font:max_font }}px">{{ word.0 }}({{ word.1 }}) </span>
-            <!-- <span>{{ word.0 }}({{ word.1 }})</span> -->
-        {% endfor %}
-    {% endwith %}
-{% endfor %}
+{% with max_font=data.0.1 %}
+    {% for word in data %}
+        <span style="font-size:{{ word.1|rel_font:max_font }}px">{{ word.0 }}({{ word.1 }}) </span>
+        <!-- <span>{{ word.0 }}({{ word.1 }})</span> -->
+    {% endfor %}
+{% endwith %}
 
 {% endblock %}

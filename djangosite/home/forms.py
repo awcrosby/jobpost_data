@@ -15,4 +15,10 @@ class UserQueryForm(forms.Form):
         widget=forms.Select(choices=LOCATION_CHOICES))
 
 class ScraperForm(forms.Form):
-    scraper_params = forms.ModelChoiceField(queryset=ScraperParams.objects.all(), widget=forms.RadioSelect, empty_label=None)
+    params = forms.ModelChoiceField(queryset=ScraperParams.objects.all(),
+                                    widget=forms.RadioSelect,
+                                    empty_label=None,
+                                    label='')
+
+class SkillsForm(forms.Form):
+    widgets = {'any_field': forms.HiddenInput(),}

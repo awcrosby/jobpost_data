@@ -5,5 +5,4 @@ from django.conf.urls import include
 urlpatterns = [
     path('', include('djangosite.home.urls')),
     path('admin/', admin.site.urls),
-    path('home/', include('djangosite.home.urls')),
 ]
