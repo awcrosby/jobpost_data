@@ -20,17 +20,15 @@ from operator import itemgetter
 import urllib
 import itertools
 import sys
-
+import traceback
 
 # mongod db init and config
 client = pymongo.MongoClient('localhost', 27017)
 db = client.jobpost_data
 db.posts.create_index('url', unique=True)
-db.posts.create_index('skills')
-# db.posts.create_index([('query_loc', 1), ('title', pymongo.TEXT), ('skills', pymongo.TEXT)])
-# db.posts.drop_index('query_loc_1_title_text_skills_text')
 db.posts.create_index([('query_loc', 1), ('title', pymongo.TEXT), ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
-#db.posts.index_information()
+# db.posts.index_information()
+# db.posts.drop_index('query_loc_1_title_text_skills_text')
 #import pdb; pdb.set_trace()  #### DEBUG
 stops = set(stopwords.words('english'))
 
@@ -88,8 +86,8 @@ def index(request):
 
     ''' QUERY DATABASE VIA USER KEYWORDS '''
     query = form.cleaned_data['query']
-    query_loc = form.cleaned_data['location']
-    print(form.cleaned_data['test'].query)
+    query_loc = form.cleaned_data['location'].query
+    # print(form.cleaned_data['test'].query)
     dataset = db_text_search(query, query_loc)
     post_count = db.posts.find({'query_loc': query_loc}).count()
 
@@ -233,77 +231,76 @@ def search_dice(query, query_loc):
 
     # get all job dicts and put into jobs list
     for joblink in joblinks:
-        r = requests.get(base_url + joblink)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        job = {}
-
-        # set query data
-        job['query'] = query.lower()
-        job['query_loc'] = query_loc.lower()
-        job['timestamp'] = datetime.utcnow()
-        job['url'] = base_url + joblink.split('?')[0]
-        print(job['url'])
-
-        # get basic job info
-        job['title'] = soup.find('h1', 'jobTitle').getText(' ')
-        job['employer'] = soup.find('li', 'employer').getText(' ').strip().strip('., ')
-        job['location'] = soup.find('li', 'location').getText(' ').strip().strip('., ')
-
-        # get datetime when posted, format: "Posted 22 minutes ago"
         try:
-            text = soup.find('li', 'posted').text.strip().strip('.,')
-            deltatype = text.split(' ')[-2]
-            if deltatype == 'moments':
-                job['posted'] = datetime.utcnow()
-            else:
-                N = int(text.split(' ')[1])
-                deltatype = deltatype if deltatype[-1] == 's' else deltatype + 's'
-                if deltatype == 'months':
-                    deltatype = 'days'
-                    N = N*30
-                delta = eval("timedelta("+deltatype+"=N)")
-                job['posted'] = datetime.utcnow() - delta
-        except Exception as e:
-            print('EXCEPTION, FOR [posted]. ERROR INFO: {}'.format(e))
-            print("job['url']: {}".format(job['url']))
+            r = requests.get(base_url + joblink)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            job = {}
 
-        # get skills
-        div = soup.find('div', {'class': 'iconsiblings', 'itemprop': 'skills'})
-        job['skills'] = div.getText(' ').strip() if div else ''
+            # set query data
+            job['query'] = query.lower()
+            job['query_loc'] = query_loc.lower()
+            job['timestamp'] = datetime.utcnow()
+            job['url'] = base_url + joblink.split('?')[0]
 
-        # get icons, if missing an icon then ordered wrong and bad data
-        icons = soup.find_all('div', 'iconsiblings')
-        try:  # icons[0] is ['skills']
-            job['empType'] = icons[1].getText(' ').strip()
-            job['baseSalary'] = icons[2].getText(' ').strip()
-            job['teleTravel'] = icons[3].getText(' ').strip()
-        except IndexError as e:
-            print('INDEXERROR, IN ICON AREA. ERROR INFO: {}'.format(e))
-            print("job['url']: {}".format(job['url']))
+            # get basic job info
+            job['title'] = soup.find('h1', 'jobTitle').getText(' ')
+            job['employer'] = soup.find('li', 'employer').getText(' ').strip().strip('., ')
+            job['location'] = soup.find('li', 'location').getText(' ').strip().strip('., ')
 
-        # get job description
-        div = soup.find('div', {'id': 'jobdescSec'})
-        job['desc'] = div.getText(' ').strip()
-        job['desc'] = re.sub('\\xa0+', ' ', job['desc'])
+            # get datetime when posted, format: "Posted 22 minutes ago"
+            try:
+                text = soup.find('li', 'posted').text.strip().strip('.,')
+                deltatype = text.split(' ')[-2]
+                if deltatype == 'moments':
+                    job['posted'] = datetime.utcnow()
+                else:
+                    N = int(text.split(' ')[1])
+                    deltatype = deltatype if deltatype[-1] == 's' else deltatype + 's'
+                    if deltatype == 'months':
+                        deltatype = 'days'
+                        N = N*30
+                    delta = eval("timedelta("+deltatype+"=N)")
+                    job['posted'] = datetime.utcnow() - delta
+            except Exception as e:
+                print('EXCEPTION, FOR [posted]. ERROR INFO: {}'.format(e))
+                print("job['url']: {}".format(job['url']))
 
-        # get dice and position ids
-        diceId, positionId = ('', '')
-        id_div = soup.find('div', 'company-header-info')
-        for div in id_div.find_all('div', 'col-md-12'):
-            if "Dice Id" in div.text:
-                diceId = div.text.split(':')[1].strip()
-            elif "Position Id" in div.text:
-                positionId = div.text.split(':')[1].strip()
-        job['jobSite'] = 'dice'
-        job['diceId'] = diceId
-        job['positionId'] = positionId
+            # get skills
+            div = soup.find('div', {'class': 'iconsiblings', 'itemprop': 'skills'})
+            job['skills'] = div.getText(' ').strip() if div else ''
 
-        # insert or update job into database
-        try:
+            # get icons, if missing an icon then ordered wrong and bad data
+            icons = soup.find_all('div', 'iconsiblings')
+            try:  # icons[0] is ['skills']
+                job['empType'] = icons[1].getText(' ').strip()
+                job['baseSalary'] = icons[2].getText(' ').strip()
+                job['teleTravel'] = icons[3].getText(' ').strip()
+            except IndexError as e:
+                pass  # gets info it can get. common that index not exist
+
+            # get job description
+            div = soup.find('div', {'id': 'jobdescSec'})
+            job['desc'] = div.getText(' ').strip()
+            job['desc'] = re.sub('\\xa0+', ' ', job['desc'])
+
+            # get dice and position ids
+            diceId, positionId = ('', '')
+            id_div = soup.find('div', 'company-header-info')
+            for div in id_div.find_all('div', 'col-md-12'):
+                if "Dice Id" in div.text:
+                    diceId = div.text.split(':')[1].strip()
+                elif "Position Id" in div.text:
+                    positionId = div.text.split(':')[1].strip()
+            job['jobSite'] = 'dice'
+            job['diceId'] = diceId
+            job['positionId'] = positionId
+
+            # insert or update job into database
             db.posts.update( {'url': job['url'] }, job, upsert=True )
-        except pymongo.errors.WriteError as e:
-            print('WRITEERROR, LIKELY [skills] KEY TOO LARGE: {}'.format(e))
-            print("job['url']: {}".format(job['url']))
+            print('.', end='', flush=True)
+        except Exception as e:
+            traceback.print_exc()
+            print("GENERAL SCRAPER ERROR job['url']: {}\n".format(job['url']))
 
-    print("len(joblinks) = {}".format(len(joblinks)))
+    print("\nlen(joblinks) = {}".format(len(joblinks)))
     return len(joblinks)
