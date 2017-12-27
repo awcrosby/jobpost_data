@@ -8,4 +8,13 @@
     <input type="submit" value="Start Scraper" />
 </form>
 
+<br><br>
+Recent Completed Scrapes <small>(from django_celery_results TaskResults)</small>:
+<ul>
+    {% for res in results %}
+        <li>{{ res.date_done }} - {{ res.status }} - {{ res.result }} jobposts</li>
+    {% endfor %}
+</ul>
+
+
 {% endblock %}

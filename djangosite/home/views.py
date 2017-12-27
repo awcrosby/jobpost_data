@@ -1,11 +1,19 @@
+from __future__ import absolute_import, unicode_literals
+
 from django.shortcuts import render
 from django.http import HttpResponse
 from .forms import UserQueryForm, ScraperForm, SkillsForm
 from .models import ScraperParams
 
-import requests
-from bs4 import BeautifulSoup
-import math
+from .tasks import add, scrape_dice
+from django_celery_results.models import TaskResult
+
+## Moved these items to tasks.py for scrape_dice
+# import requests
+# from bs4 import BeautifulSoup
+# import urllib
+# import math
+
 from datetime import datetime, timedelta
 import time
 import re
@@ -17,7 +25,6 @@ from nltk.corpus import stopwords
 import collections
 import textblob
 from operator import itemgetter
-import urllib
 import itertools
 import sys
 import traceback
@@ -40,7 +47,7 @@ stops |= set(['experience', 'client', 'position', 'include', 'time',
               'performance', 'key', 'focus', 'object', 'process', 'center',
               'server', 'components', 'scale', 'user', 'external', 'global',
               'local', 'processing', 'call', 'configuration', 'networking',
-              'resources', 'protocols'])
+              'resources', 'protocols', 'frameworks'])
 
 def scraper(request):
     if request.method == 'POST':
@@ -50,7 +57,10 @@ def scraper(request):
             query = form.cleaned_data['params'].query
             db_id = form.cleaned_data['params'].id
             if form.cleaned_data['params'].job_site.name == "Dice":
-                num_items = search_dice(query=query, query_loc=query_loc)
+                ''' TEST '''
+                num_items = scrape_dice.delay(query=query, query_loc=query_loc)
+
+                # num_items = search_dice(query=query, query_loc=query_loc)
             if num_items:
                 s = ScraperParams.objects.get(id=db_id)
                 s.last_queried = datetime.utcnow()
@@ -59,7 +69,14 @@ def scraper(request):
             form = ScraperForm()
     else:  # if not POST, then create a new form
         form = ScraperForm()
-    return render(request, 'home/scraper.html', {'form': form})
+
+    results = TaskResult.objects.all().order_by('-date_done')[:5]
+
+    context = {
+        'form': form,
+        'results': results,
+    }
+    return render(request, 'home/scraper.html', context)
 
 def skills(request):
     if request.method == 'POST':
@@ -87,7 +104,6 @@ def index(request):
     ''' QUERY DATABASE VIA USER KEYWORDS '''
     query = form.cleaned_data['query']
     query_loc = form.cleaned_data['location'].query
-    # print(form.cleaned_data['test'].query)
     dataset = db_text_search(query, query_loc)
     post_count = db.posts.find({'query_loc': query_loc}).count()
 
@@ -122,14 +138,14 @@ def get_word_count(dataset):
     allwords = skill_whitelist(allwords)  # filter by stackoverflow skills
     count = collections.Counter(allwords)
 
-    # append top noun_phrases
-    allphrases = []
-    for doc in dataset:
-        docphrases = textblob.TextBlob(doc['skills']).lower().noun_phrases
-        allphrases.extend(docphrases)
-    count += collections.Counter(allphrases)
-    print('after phrases, TIME: {:.3f}s'.format((time.time()-start)))
-    print(collections.Counter(allphrases).most_common(20))
+    # # append top noun_phrases
+    # allphrases = []
+    # for doc in dataset:
+    #     docphrases = textblob.TextBlob(doc['skills']).lower().noun_phrases
+    #     allphrases.extend(docphrases)
+    # count += collections.Counter(allphrases)
+    # print('after phrases, TIME: {:.3f}s'.format((time.time()-start)))
+    # print(collections.Counter(allphrases).most_common(20))
 
     return count.most_common(40)
 
@@ -227,7 +243,7 @@ def search_dice(query, query_loc):
         soup = BeautifulSoup(r.text, 'html.parser')
         divs = soup.find_all('div', 'complete-serp-result-div')
         joblinks += [d.find('a', 'dice-btn-link')['href'] for d in divs]
-        print(page)
+        print('page of links: {}'.format(page))
 
     # get all job dicts and put into jobs list
     for joblink in joblinks:
@@ -248,22 +264,18 @@ def search_dice(query, query_loc):
             job['location'] = soup.find('li', 'location').getText(' ').strip().strip('., ')
 
             # get datetime when posted, format: "Posted 22 minutes ago"
-            try:
-                text = soup.find('li', 'posted').text.strip().strip('.,')
-                deltatype = text.split(' ')[-2]
-                if deltatype == 'moments':
-                    job['posted'] = datetime.utcnow()
-                else:
-                    N = int(text.split(' ')[1])
-                    deltatype = deltatype if deltatype[-1] == 's' else deltatype + 's'
-                    if deltatype == 'months':
-                        deltatype = 'days'
-                        N = N*30
-                    delta = eval("timedelta("+deltatype+"=N)")
-                    job['posted'] = datetime.utcnow() - delta
-            except Exception as e:
-                print('EXCEPTION, FOR [posted]. ERROR INFO: {}'.format(e))
-                print("job['url']: {}".format(job['url']))
+            text = soup.find('li', 'posted').text.strip().strip('.,')
+            deltatype = text.split(' ')[-2]
+            if deltatype == 'moments':
+                job['posted'] = datetime.utcnow()
+            else:
+                N = int(text.split(' ')[1])
+                deltatype = deltatype if deltatype[-1] == 's' else deltatype + 's'
+                if deltatype == 'months':
+                    deltatype = 'days'
+                    N = N*30
+                delta = eval("timedelta("+deltatype+"=N)")
+                job['posted'] = datetime.utcnow() - delta
 
             # get skills
             div = soup.find('div', {'class': 'iconsiblings', 'itemprop': 'skills'})
@@ -300,7 +312,7 @@ def search_dice(query, query_loc):
             print('.', end='', flush=True)
         except Exception as e:
             traceback.print_exc()
-            print("GENERAL SCRAPER ERROR job['url']: {}\n".format(job['url']))
+            print("\nGENERAL SCRAPER ERROR job['url']: {}\n".format(job['url']))
 
     print("\nlen(joblinks) = {}".format(len(joblinks)))
     return len(joblinks)

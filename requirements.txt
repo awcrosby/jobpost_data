@@ -7,3 +7,5 @@ requests-cache
 beautifulsoup4
 textblob
 nltk
+celery
+django-celery-results

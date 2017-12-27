@@ -6,35 +6,37 @@
   vars_files:
     - vars.yml
   tasks:
-    # - name: Updates package lists for upgrades/new pkg, then upgrades all current packages to the latest version
-    #   become: true
-    #   apt: upgrade=dist update_cache=yes
-    # - name: Install latest version of packages
-    #   become: true
-    #   package: name="{{item}}" state=latest
-    #   with_items:
-    #     - python3-pip
-    #     - virtualenv
-    #     - python3-dev
+    ### Initial setup
+    - name: Updates package lists for upgrades/new pkg, then upgrades all current packages to the latest version
+      become: true
+      apt: upgrade=dist update_cache=yes
+    - name: Install latest version of packages
+      become: true
+      package: name="{{item}}" state=latest
+      with_items:
+        - python3-pip
+        - virtualenv
+        - python3-dev
+        - rabbitmq-server
+    - name: Create virtual environment and install pip packages
+      pip:
+        requirements: "{{ dest_proj_path }}/requirements.txt"
+        virtualenv: "{{ dest_proj_path }}/venv"
 
-    # - name: Add mongodb repo apt_key
-    #   become: true
-    #   apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
-    # - name: Add mongodb sources list
-    #   become: true
-    #   shell: "echo 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.6 multiverse' | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list"
-    #   changed_when: false
-    # - name: Update repositories cache and install "mongodb-org" package
-    #   become: true
-    #   apt: name=mongodb-org update_cache=yes
-    # - name: Start and enable mongod service
-    #   become: true
-    #   service: name=mongod state=started enabled=yes
-
-    # - name: Create virtual environment and install pip packages
-    #   pip:
-    #     requirements: "{{ dest_proj_path }}/requirements.txt"
-    #     virtualenv: "{{ dest_proj_path }}/venv"
+    ### MongoDB config
+    - name: Add mongodb repo apt_key
+      become: true
+      apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+    - name: Add mongodb sources list
+      become: true
+      shell: "echo 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.6 multiverse' | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list"
+      changed_when: false
+    - name: Update repositories cache and install "mongodb-org" package
+      become: true
+      apt: name=mongodb-org update_cache=yes
+    - name: Start and enable mongod service
+      become: true
+      service: name=mongod state=started enabled=yes
 
     ### PostgreSQL config: http://blog.apcelent.com/using-ansible-to-set-up-postgresql.html
     - name: Install PostgreSQL
@@ -48,7 +50,6 @@
     - name: Ensure the postgres service is running
       become: true
       service: name=postgresql state=started enabled=yes
-
     - name: Ensure postgres db is created
       become: true
       become_user: postgres
@@ -67,6 +68,7 @@
                    priv=ALL
                    state=present
 
+    ### Preferences
     - name: Turn off bell in terminal
       lineinfile:
         path: /etc/inputrc
