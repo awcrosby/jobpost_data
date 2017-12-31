@@ -10,10 +10,29 @@ import urllib
 import math
 from datetime import datetime, timedelta
 import re
+import traceback
+
+
+@shared_task
+def get_stackoverflow_skills():
+    client = pymongo.MongoClient('localhost', 27017)
+    db = client.jobpost_data
+
+    skills = []
+    base_url = 'https://stackoverflow.com'
+    for n in range(60):
+        r = requests.get(base_url + '/tags?page={}&tab=popular'.format(n))
+        soup = BeautifulSoup(r.text, 'html.parser')
+        tags = [t.text for t in soup.find_all('a', 'post-tag')]
+        skills.extend(tags)
+        print('.')
+
+    data = {'source': 'stackoverflow', 'skills': skills}
+    db.skills.update({'source': 'stackoverflow'}, data, upsert=True)
+
 
 @shared_task
 def scrape_dice(query, query_loc, param_id):
-    # mongod db
     client = pymongo.MongoClient('localhost', 27017)
     db = client.jobpost_data
 
@@ -59,25 +78,28 @@ def scrape_dice(query, query_loc, param_id):
 
             # get basic job info
             job['title'] = soup.find('h1', 'jobTitle').getText(' ')
-            job['employer'] = soup.find('li', 'employer').getText(' ').strip().strip('., ')
-            job['location'] = soup.find('li', 'location').getText(' ').strip().strip('., ')
+            job['employer'] = (soup.find('li', 'employer')
+                               .getText(' ').strip().strip('., '))
+            job['location'] = (soup.find('li', 'location')
+                               .getText(' ').strip().strip('., '))
 
             # get datetime when posted, format: "Posted 22 minutes ago"
             text = soup.find('li', 'posted').text.strip().strip('.,')
-            deltatype = text.split(' ')[-2]
-            if deltatype == 'moments':
+            deltype = text.split(' ')[-2]
+            if deltype == 'moments':
                 job['posted'] = datetime.utcnow()
             else:
                 N = int(text.split(' ')[1])
-                deltatype = deltatype if deltatype[-1] == 's' else deltatype + 's'
-                if deltatype == 'months':
-                    deltatype = 'days'
+                deltype = deltype if deltype[-1] == 's' else deltype + 's'
+                if deltype == 'months':
+                    deltype = 'days'
                     N = N*30
-                delta = eval("timedelta("+deltatype+"=N)")
+                delta = eval("timedelta("+deltype+"=N)")
                 job['posted'] = datetime.utcnow() - delta
 
             # get skills
-            div = soup.find('div', {'class': 'iconsiblings', 'itemprop': 'skills'})
+            div = soup.find('div', {'class': 'iconsiblings',
+                                    'itemprop': 'skills'})
             job['skills'] = div.getText(' ').strip() if div else ''
 
             # get icons, if missing an icon then ordered wrong and bad data
@@ -107,11 +129,11 @@ def scrape_dice(query, query_loc, param_id):
             job['positionId'] = positionId
 
             # insert or update job into database
-            db.posts.update( {'url': job['url'] }, job, upsert=True )
+            db.posts.update({'url': job['url']}, job, upsert=True)
             print('.', end='', flush=True)
         except Exception as e:
             traceback.print_exc()
-            print("\nGENERAL SCRAPER ERROR job['url']: {}\n".format(job['url']))
+            print("\nGENERAL SCRAPER ERR job['url']: {}\n".format(job['url']))
 
     print("\nlen(joblinks) = {}".format(len(joblinks)))
     s = ScraperParams.objects.get(id=param_id)

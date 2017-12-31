@@ -1,18 +1,22 @@
 {% extends 'home/layout.html' %}
 {% block content %}
 
-<p>Select parameters for scraper to use:</p>
+<p>Select parameter set to scrape:</p>
+
 <form action="" method="post">
     {% csrf_token %}
-    {{ form }}
+    {% for choice in form.params %}
+        <div>{{ choice }}</div>
+    {% endfor %}
+    <br>
     <input type="submit" value="Start Scraper" />
 </form>
 
-<br><br>
+<!-- <br><br>
 Current Tasks <small>(from celery app.control.inspect)</small>:
 <ul>
-    {% for task in tasks %}
-        <li>{{ task.status }}: {{ task.name }}, kwargs: {{ task.kwargs }}</li>
+    {% for task in current_tasks %}
+        <li>{{task}} {{ task.status }}: {{ task.name }}, kwargs: {{ task.kwargs }}</li>
     {% endfor %}
 </ul>
 
@@ -22,7 +26,6 @@ Recent Completed Scrapes <small>(from django_celery_results TaskResults)</small>
     {% for res in results %}
         <li>{{ res.date_done }} - {{ res.status }} - {{ res.result }} jobposts</li>
     {% endfor %}
-</ul>
-
+</ul> -->
 
 {% endblock %}

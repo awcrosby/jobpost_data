@@ -6,7 +6,7 @@ class UserQueryForm(forms.Form):
     location = forms.ModelChoiceField(queryset=QueryLoc.objects.all().order_by('name'))
 
 class ScraperForm(forms.Form):
-    params = forms.ModelChoiceField(queryset=ScraperParams.objects.all(),
+    params = forms.ModelChoiceField(queryset=ScraperParams.objects.all().order_by('id'),
                                     widget=forms.RadioSelect,
                                     empty_label=None,
                                     label='')

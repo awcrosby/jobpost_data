@@ -23,9 +23,10 @@ class ScraperParams(models.Model):
     job_site = models.ForeignKey(JobSite, on_delete=models.SET_NULL, null=True)
     query_loc = models.ForeignKey(QueryLoc, on_delete=models.SET_NULL, null=True)
     last_queried = models.DateTimeField(null=True, blank=True)
+    task_id = models.CharField(max_length=50, blank=True)
+    status = models.TextField(blank=True)
     def __str__(self):  # string to represent Model object in admin
-        return '{} q="{}" in "{}", last queried: {}'.format(self.job_site.name,
-            self.query, self.query_loc.query, self.last_queried)
-        # return '{} in {}'.format(self.job_site.name, self.query_loc.name)
+        return '{} q="{}" in "{}", {}'.format(self.job_site.name,
+            self.query, self.query_loc.query, self.status)
     class Meta:
         verbose_name_plural = "Scraper params"
