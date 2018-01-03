@@ -26,7 +26,7 @@ class ScraperParams(models.Model):
     task_id = models.CharField(max_length=50, blank=True)
     status = models.TextField(blank=True)
     def __str__(self):  # string to represent Model object in admin
-        return '{} q="{}" in "{}", {}'.format(self.job_site.name,
-            self.query, self.query_loc.query, self.status)
+        return "{} q='{}' in '{}'".format(self.job_site.name,
+            self.query, self.query_loc.query)
     class Meta:
         verbose_name_plural = "Scraper params"

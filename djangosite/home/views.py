@@ -3,12 +3,15 @@ from __future__ import absolute_import, unicode_literals
 from django.shortcuts import render
 from .forms import UserQueryForm, ScraperForm, SkillsForm
 from .models import ScraperParams
+from django.http import HttpResponse
 
 from djangosite.celery import app
 from django_celery_results.models import TaskResult
+from celery.result import AsyncResult
 from .tasks import scrape_dice, get_stackoverflow_skills
 from .text_proc import get_word_count, db_text_search
 import pymongo
+import json
 
 
 # mongod db init and config
@@ -22,54 +25,75 @@ db.posts.create_index([('query_loc', 1), ('title', pymongo.TEXT),
 # import pdb; pdb.set_trace()  #### DEBUG
 
 
+def get_task_progress(request):
+    data = 'error'
+    if request.is_ajax():  # ajax view to get progress of task
+        if 'task_id' in request.GET.keys() and request.GET['task_id']:
+            task_id = request.GET['task_id']
+            task = AsyncResult(task_id)
+            progress = 100
+            if 'progress' in task.result:
+                progress = task.result['progress']
+
+            data = {
+                'status': task.status,
+                'progress': progress,
+                'display_result': helper_get_display_results(task_id)
+            }
+    json_data = json.dumps(data)
+    return HttpResponse(json_data, content_type='application/json')
+
+def helper_get_display_results(task_id):
+    print(task_id)
+    display_result = ''
+    task = TaskResult.objects.get(task_id=task_id)
+    if task.status == 'FAILURE':
+        display_result = json.loads(task.result)['exc_type']
+    elif task.status == 'SUCCESS':
+        display_result = '{} posts scraped on {}'.format(
+            json.loads(task.result)['jobposts'],
+            task.date_done.strftime('%Y-%m-%d %H:%M'))
+    print(display_result)
+    return display_result
+
 def scraper(request):
     if request.method == 'POST':
         form = ScraperForm(request.POST)  # populate form with request data
         if form.is_valid():   # process the data in form.cleaned_data
-            query_loc = form.cleaned_data['params'].query_loc.query
-            query = form.cleaned_data['params'].query
-            param_id = form.cleaned_data['params'].id
             if form.cleaned_data['params'].job_site.name == "Dice":
-                s = ScraperParams.objects.get(id=param_id)
-                if s.status != 'SCRAPE IN PROGRESS':
-                    # send task to celery to manage
-                    task_obj = scrape_dice.delay(query=query,
-                                                 query_loc=query_loc,
-                                                 param_id=param_id)
-                    # write result identifier to scraper params obj
-                    s.task_id = str(task_obj)
-                    s.save()
+                s = ScraperParams.objects.get(id=form.cleaned_data['params'].id)
+                if s.status != 'PENDING' and s.status != 'PROGRESS':
+                    task = scrape_dice.delay(  # send task to celery to manage
+                        query=form.cleaned_data['params'].query,
+                        query_loc=form.cleaned_data['params'].query_loc.query,
+                        param_id=form.cleaned_data['params'].id)
+                    task = TaskResult(task_id=task.task_id)
+                    task.save()
+                    s.task_id = task.task_id
+                    s.save()  # write task_id to scraper_params obj
                 form = ScraperForm()  # clear form selection
         else:
             form = ScraperForm()
     else:  # if not POST, then create a new form
         form = ScraperForm()
 
-    # current tasks via celery inspection, takes about 3 seconds
-    i = app.control.inspect()
-    current_tasks = ([x for x in i.active()['celery@ubuntu-xenial']] +
-                     [x for x in i.reserved()['celery@ubuntu-xenial']] +
-                     [x for x in i.scheduled()['celery@ubuntu-xenial']])
-    current_task_ids = [x['id'] for x in current_tasks]
-
-    # set status of every scraper_params object
+    # create scraper list with scraper info for display
+    scraper_list = []
     scraper_params = ScraperParams.objects.all()
-    for s in scraper_params:
-        s.status = 'NOT QUERIED YET'
-        results = TaskResult.objects.filter(task_id=s.task_id)
-        if len(results) > 0:
-            if results[0].status == 'SUCCESS':
-                s.status = '{} posts scraped on {}'.format(results[0].result,
-                           s.last_queried.strftime('%Y-%m-%d %H:%M'))
-            else:
-                s.status = (results[0].status + ' ...' +
-                            results[0].traceback[-100:])
-        if s.task_id in current_task_ids:
-            s.status = 'SCRAPE IN PROGRESS'
-        s.save()
+    for scraper in scraper_params:
+        status = {'status': 'NOT QUERIED YET',
+                  'display_result': '',
+                  'progress': 0}
+        if scraper.task_id:
+            task = TaskResult.objects.get(task_id=scraper.task_id)
+            display_result = helper_get_display_results(scraper.task_id)
+            status['status'] = task.status
+            status['display_result'] = display_result
+        scraper_list.append((scraper, status))
 
     context = {
         'form': form,
+        'scraper_list': scraper_list,
     }
     return render(request, 'home/scraper.html', context)
 

@@ -1,4 +1,4 @@
-{% extends 'home/layout.html' %}
+{% extends 'home/base.html' %}
 {% block content %}
 
 <p>Select parameter set to scrape:</p>
@@ -12,20 +12,58 @@
     <input type="submit" value="Start Scraper" />
 </form>
 
-<!-- <br><br>
-Current Tasks <small>(from celery app.control.inspect)</small>:
-<ul>
-    {% for task in current_tasks %}
-        <li>{{task}} {{ task.status }}: {{ task.name }}, kwargs: {{ task.kwargs }}</li>
-    {% endfor %}
-</ul>
-
 <br><br>
-Recent Completed Scrapes <small>(from django_celery_results TaskResults)</small>:
-<ul>
-    {% for res in results %}
-        <li>{{ res.date_done }} - {{ res.status }} - {{ res.result }} jobposts</li>
-    {% endfor %}
-</ul> -->
 
+<table>
+  <tr>
+    <th>Scraper Parameters</th>
+    <th>Status</th>
+    <th>Progress</th>
+    <th>Results / Etc</th>
+  </tr>
+  {% for scraper, status in scraper_list %}
+    <tr>
+      <td>{{scraper}}</td>
+      <td>
+        <div id="status-{{scraper.task_id}}"
+             app_task_id="{{scraper.task_id}}"
+             class="js-status">{{status.status}}</div>
+      </td>
+      <td>
+        <div class="bar-outer" style="width: 100px; height: 18px">
+          <div id="bar-{{scraper.task_id}}"
+               style="background-color: blue; width: {{status.progress}}%; height: 18px"
+               class="bar-inner"></div>
+        </div>
+      </td>
+      <td><div id="res-{{scraper.task_id}}">{{status.display_result}}</div></td>
+    </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}
+
+{% block javascript %}
+<script>
+  setInterval(function(){
+    $('.js-status').each(function() {
+      if ($(this).text() == 'PENDING' || $(this).text() == 'PROGRESS') {
+        var task_id = $(this).attr('app_task_id');
+        // console.log($(this).text(), task_id);
+        $.ajax({
+          url: '{% url "get_task_progress" %}',
+          data: {
+            'task_id': task_id
+          },
+          dataType: 'json',
+          success: function (data) {
+            console.log('ajax response success, status: ', data.status);
+            $("#bar-" + task_id).css("width", data.progress + "%");
+            $("#status-" + task_id).html(data.status);
+          }
+        });
+      }
+    });
+  }, 300);
+</script>
 {% endblock %}

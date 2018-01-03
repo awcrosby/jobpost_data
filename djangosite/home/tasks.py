@@ -1,6 +1,7 @@
 # Create your tasks here
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
+from django_celery_results.models import TaskResult
 
 import pymongo
 from .models import ScraperParams
@@ -31,8 +32,14 @@ def get_stackoverflow_skills():
     db.skills.update({'source': 'stackoverflow'}, data, upsert=True)
 
 
-@shared_task
-def scrape_dice(query, query_loc, param_id):
+@shared_task(bind=True)
+def scrape_dice(self, query, query_loc, param_id):
+    # setup vars to track progress of task
+    current = 0
+    interval = 3  # limit db writes
+    self.update_state(state='PROGRESS',
+        meta={'progress': 0})
+
     client = pymongo.MongoClient('localhost', 27017)
     db = client.jobpost_data
 
@@ -53,6 +60,7 @@ def scrape_dice(query, query_loc, param_id):
     npost = int(soup.find('span', {'id': 'posiCountId'}).text.replace(',', ''))
     npage = math.ceil(npost/30)  # dice has 30 posts/page
     pagelinks = [page_url(query, query_loc, n+1) for n in range(npage)]
+    total = npost + npage  # used for progress
 
     # gather joblinks from each page
     joblinks = []
@@ -62,6 +70,12 @@ def scrape_dice(query, query_loc, param_id):
         divs = soup.find_all('div', 'complete-serp-result-div')
         joblinks += [d.find('a', 'dice-btn-link')['href'] for d in divs]
         print('page of links: {}'.format(page))
+
+        # track and set progress
+        current += 1
+        if (current % interval) == 0:
+            self.update_state(state='PROGRESS',
+                meta={'progress': (current/total)*100})
 
     # get all job dicts and put into jobs list
     for joblink in joblinks:
@@ -135,8 +149,14 @@ def scrape_dice(query, query_loc, param_id):
             traceback.print_exc()
             print("\nGENERAL SCRAPER ERR job['url']: {}\n".format(job['url']))
 
+        # track and set progress
+        current += 1
+        if (current % interval) == 0:
+            self.update_state(state='PROGRESS',
+                meta={'progress': (current/total)*100})
+
     print("\nlen(joblinks) = {}".format(len(joblinks)))
     s = ScraperParams.objects.get(id=param_id)
     s.last_queried = datetime.utcnow()
     s.save()
-    return len(joblinks)
+    return {'jobposts': len(joblinks), 'progress': (current/total)*100}
