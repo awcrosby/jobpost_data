@@ -36,8 +36,8 @@ def get_stackoverflow_skills():
 def scrape_dice(self, query, query_loc, param_id):
     # setup vars to track progress of task
     current = 0
-    interval = 3  # limit db writes
-    self.update_state(state='PROGRESS',
+    interval = 5  # limit db writes
+    self.update_state(state='IN_PROGRESS',
         meta={'progress': 0})
 
     client = pymongo.MongoClient('localhost', 27017)
@@ -74,7 +74,7 @@ def scrape_dice(self, query, query_loc, param_id):
         # track and set progress
         current += 1
         if (current % interval) == 0:
-            self.update_state(state='PROGRESS',
+            self.update_state(state='IN_PROGRESS',
                 meta={'progress': (current/total)*100})
 
     # get all job dicts and put into jobs list
@@ -152,7 +152,7 @@ def scrape_dice(self, query, query_loc, param_id):
         # track and set progress
         current += 1
         if (current % interval) == 0:
-            self.update_state(state='PROGRESS',
+            self.update_state(state='IN_PROGRESS',
                 meta={'progress': (current/total)*100})
 
     print("\nlen(joblinks) = {}".format(len(joblinks)))

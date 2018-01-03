@@ -3,40 +3,35 @@
 
 <p>Select parameter set to scrape:</p>
 
-<form action="" method="post">
-    {% csrf_token %}
-    {% for choice in form.params %}
-        <div>{{ choice }}</div>
-    {% endfor %}
-    <br>
-    <input type="submit" value="Start Scraper" />
-</form>
-
-<br><br>
-
 <table>
   <tr>
+    <th></th>
     <th>Scraper Parameters</th>
     <th>Status</th>
-    <th>Progress</th>
-    <th>Results / Etc</th>
+    <th>Results</th>
   </tr>
   {% for scraper, status in scraper_list %}
     <tr>
+      <td>
+        <button id="button-{{scraper.id}}"
+                app_scraper_id="{{scraper.id}}"
+                class="js-scrape">Start</button>
+      </td>
       <td>{{scraper}}</td>
       <td>
-        <div id="status-{{scraper.task_id}}"
+        <div id="status-{{scraper.id}}"
              app_task_id="{{scraper.task_id}}"
+             app_scraper_id="{{scraper.id}}"
              class="js-status">{{status.status}}</div>
       </td>
+      <td><div id="res-{{scraper.id}}">{{status.display_result}}</div></td>
       <td>
         <div class="bar-outer" style="width: 100px; height: 18px">
-          <div id="bar-{{scraper.task_id}}"
+          <div id="bar-{{scraper.id}}"
                style="background-color: blue; width: {{status.progress}}%; height: 18px"
                class="bar-inner"></div>
         </div>
       </td>
-      <td><div id="res-{{scraper.task_id}}">{{status.display_result}}</div></td>
     </tr>
   {% endfor %}
 </table>
@@ -45,25 +40,51 @@
 
 {% block javascript %}
 <script>
-  setInterval(function(){
+  // start scraper
+  $('.js-scrape').click(function() {
+    $(this).attr('disabled', true)
+    var scraper_id = $(this).attr('app_scraper_id');
+    $.ajax({
+      url: '{% url "start_scraper" %}',
+      type: 'POST',
+      data: {
+        scraper_id: scraper_id,
+        csrfmiddlewaretoken: "{{csrf_token}}"
+      },
+      dataType: 'json',
+      success: function (data) {
+        $("#status-" + scraper_id).attr('app_task_id', data.task_id);
+        $("#status-" + scraper_id).html('PENDING');
+      }
+    });
+  });
+
+  // check if any status in progress, if so HTTP req for progress
+  function check_each_status() {
     $('.js-status').each(function() {
-      if ($(this).text() == 'PENDING' || $(this).text() == 'PROGRESS') {
-        var task_id = $(this).attr('app_task_id');
-        // console.log($(this).text(), task_id);
+      var task_id = $(this).attr('app_task_id');
+      var scraper_id = $(this).attr('app_scraper_id');
+      if ($(this).text() == 'PENDING' || $(this).text() == 'IN_PROGRESS') {
+        $("#button-" + scraper_id).attr('disabled', true)
         $.ajax({
           url: '{% url "get_task_progress" %}',
-          data: {
-            'task_id': task_id
-          },
+          data: { 'task_id': task_id },
           dataType: 'json',
           success: function (data) {
-            console.log('ajax response success, status: ', data.status);
-            $("#bar-" + task_id).css("width", data.progress + "%");
-            $("#status-" + task_id).html(data.status);
+            $("#bar-" + scraper_id).css("width", data.progress + "%");
+            $("#status-" + scraper_id).html(data.status);
+            $("#res-" + scraper_id).html(data.display_result);
           }
         });
       }
+      else {
+        $("#button-" + scraper_id).attr('disabled', false)
+      }
     });
-  }, 300);
+  };
+
+  $( document ).ready(check_each_status);
+
+  setInterval(check_each_status, 3000);
 </script>
 {% endblock %}
