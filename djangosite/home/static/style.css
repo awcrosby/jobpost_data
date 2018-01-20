@@ -1,0 +1,10 @@
+.clearfix:after { content: '';  clear: both;  display: table; }
+
+h3 { text-decoration: underline; }
+
+table, th, td { border: 1px solid gray; border-collapse: collapse; padding: 1px 3px 2px 3px; }
+
+.progressbar { background-color: #aaa; border-radius: 5px; width: 105px; }
+.bar-inner { background-color: #085; border-radius: 5px; }
+
+#skills-intro { float: left; margin-right: 10px; }

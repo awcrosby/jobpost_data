@@ -14,6 +14,10 @@ import re
 import traceback
 
 
+
+
+
+
 @shared_task
 def get_stackoverflow_skills():
     client = pymongo.MongoClient('localhost', 27017)
@@ -65,17 +69,21 @@ def scrape_dice(self, query, query_loc, param_id):
     # gather joblinks from each page
     joblinks = []
     for page in pagelinks:
-        r = requests.get(base_url + page)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        divs = soup.find_all('div', 'complete-serp-result-div')
-        joblinks += [d.find('a', 'dice-btn-link')['href'] for d in divs]
-        print('page of links: {}'.format(page))
+        try:
+            r = requests.get(base_url + page)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            divs = soup.find_all('div', 'complete-serp-result-div')
+            joblinks += [d.find('a', 'dice-btn-link')['href'] for d in divs]
+            print('page of links: {}'.format(page))
 
-        # track and set progress
-        current += 1
-        if (current % interval) == 0:
-            self.update_state(state='IN_PROGRESS',
-                meta={'progress': (current/total)*100})
+            # track and set progress
+            current += 1
+            if (current % interval) == 0:
+                self.update_state(state='IN_PROGRESS',
+                    meta={'progress': (current/total)*100})
+        except Exception as e:
+            traceback.print_exc()
+            print("\nGENERAL SCRAPER ERR page: {}\n".format(page))
 
     # get all job dicts and put into jobs list
     for joblink in joblinks:

@@ -22,16 +22,13 @@
         <div id="status-{{scraper.id}}"
              app_task_id="{{scraper.task_id}}"
              app_scraper_id="{{scraper.id}}"
-             class="js-status">{{status.status}}</div>
-      </td>
-      <td><div id="res-{{scraper.id}}">{{status.display_result}}</div></td>
-      <td>
-        <div class="bar-outer" style="width: 100px; height: 18px">
-          <div id="bar-{{scraper.id}}"
-               style="background-color: blue; width: {{status.progress}}%; height: 18px"
-               class="bar-inner"></div>
+             class="js-status">{{status.status}}
+        </div>
+        <div class="progressbar">
+          <div id="bar-{{scraper.id}}" class="bar-inner"></div>
         </div>
       </td>
+      <td><div id="res-{{scraper.id}}">{{status.display_result}}</div></td>
     </tr>
   {% endfor %}
 </table>
@@ -72,6 +69,7 @@
           dataType: 'json',
           success: function (data) {
             $("#bar-" + scraper_id).css("width", data.progress + "%");
+            $("#bar-" + scraper_id).css("height", "18px");
             $("#status-" + scraper_id).html(data.status);
             $("#res-" + scraper_id).html(data.display_result);
           }

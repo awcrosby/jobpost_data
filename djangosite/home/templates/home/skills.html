@@ -1,14 +1,12 @@
 {% extends 'home/base.html' %}
 {% block content %}
 
-<!-- <p>Update skills by getting most popular Stackoverflow tags:</p> -->
-<div style="float:left; margin-right: 10px">Update skills by getting most popular Stackoverflow tags:</div>
-<div style="">
-    <form action="" method="post">
-        {% csrf_token %}
-        {{ form }}
-        <input type="submit" value="Update Skills" />
-    </form>
-</div>
-<div style="clear: both"></div>
+<span id="skills-intro">Update skills by getting most popular Stackoverflow tags:</span>
+
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Update Skills" />
+</form>
+
 {% endblock %}

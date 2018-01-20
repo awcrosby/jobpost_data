@@ -1,3 +1,5 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,15 +11,8 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 
   <title>Tech Job Post Analysis</title>
-  <style>
-    h3 { text-decoration: underline; }
 
-    table, th, td {
-      border: 1px solid gray;
-      border-collapse: collapse;
-      padding: 1px 3px 0px 3px;
-    }
-  </style>
+  <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}" />
 </head>
 
 <body>
@@ -43,7 +38,3 @@
 </body>
 
 </html>
-
-<!-- <script>
-    h3 { text-decoration: underline; }
-</script> -->

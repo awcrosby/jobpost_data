@@ -120,7 +120,7 @@ def index(request):
     data = get_word_count(dataset)
 
     ''' PREPARE DATA FOR TEMPLATE '''
-    title = '{} job posts matching "{}" out of {} posts in {}'.format(
+    title = '{} job posts matching "{}" out of {} posts in {}. Highest matching skills:'.format(
             len(dataset), query, post_count, query_loc)
     context = {'title': title, 'data': data, 'form': form}
     return render(request, 'home/index.html', context)
