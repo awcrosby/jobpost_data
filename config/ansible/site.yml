@@ -79,3 +79,9 @@
         src: "{{ dest_proj_path }}/config/.vimrc"
         dest: ~/.vimrc
         state: link
+
+    ### Celery config
+    - name: Copy celery daemon
+      file:
+        src: "{{ dest_proj_path }}/config/celeryd"
+        dest: /etc/init.d/celeryd
