@@ -18,6 +18,7 @@
         - virtualenv
         - python3-dev
         - rabbitmq-server
+        - supervisor
     - name: Create virtual environment and install pip packages
       pip:
         requirements: "{{ dest_proj_path }}/requirements.txt"
@@ -80,8 +81,12 @@
         dest: ~/.vimrc
         state: link
 
-    ### Celery config
-    - name: Copy celery daemon
-      file:
-        src: "{{ dest_proj_path }}/config/celeryd"
-        dest: /etc/init.d/celeryd
+    ### Suppervisord + Celery config
+    - name: Copy supervisord config
+      become: true
+      copy:
+        src: ../supervisord.conf
+        dest: /etc/supervisor/supervisord.conf
+    - name: Restart supervisor service
+      become: true
+      service: name=supervisor state=restarted enabled=yes
