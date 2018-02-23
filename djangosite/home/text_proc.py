@@ -3,6 +3,7 @@ import collections
 import time
 import textblob
 import nltk
+import re
 # nltk.download('stopwords')
 from nltk.corpus import stopwords
 
@@ -21,17 +22,26 @@ stops |= set(['experience', 'client', 'position', 'include', 'time',
               'resources', 'protocols', 'frameworks'])
 
 
+def db_text_search(query, query_loc):
+    cur = db.posts.find({'query_loc': query_loc,
+                         '$text': {'$search': query}})
+    return cur
+    # return [doc for doc in cur]
+
+
 def get_word_count(dataset):
     # get count of single words
     allwords = []
     start = time.time()
-    for doc in dataset:
+    for i, doc in enumerate(dataset):
         docwords = set()
         for field in ['skills', 'title', 'desc']:
-            fieldwords = textblob.TextBlob(doc[field]).lower().words
-            fieldwords = [i for w in fieldwords for i in w.split('/')]
-            fieldwords = [i for w in fieldwords for i in w.split('-')]
+            fieldwords = re.split('\-| |, |. |; |: |\/|\n', doc[field])
+            # fieldwords = textblob.TextBlob(doc[field]).lower().words
+            # fieldwords = [i for w in fieldwords for i in w.split('/')]
+            # fieldwords = [i for w in fieldwords for i in w.split('-')]
             docwords = docwords.union(set(fieldwords))
+        if (i % 10000 == 0): print(docwords)
         allwords.extend(docwords)
     print('after {} words, TIME: {:.3f}s'.format(len(allwords),
                                                  time.time()-start))
@@ -49,12 +59,6 @@ def get_word_count(dataset):
     # print(collections.Counter(allphrases).most_common(20))
 
     return count.most_common(40)
-
-
-def db_text_search(query, query_loc):
-    cur = db.posts.find({'query_loc': query_loc,
-                         '$text': {'$search': query}})
-    return [doc for doc in cur]
 
 
 def skill_whitelist(skills_to_filter):
