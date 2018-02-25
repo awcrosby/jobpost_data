@@ -12,21 +12,15 @@
 <!-- <h4 class="center-align blue lighten-3">{{ title }}</h4> -->
 <div style="margin: 20px 0px 10px 0px; font-weight: bold;">{{ title }}</div>
 
-<!-- {% with max_font=data.0.1 %}
-    {% for word in data %}
-        <span style="font-size:{{ word.1|rel_font:max_font }}px">{{ word.0 }}({{ word.1 }}) </span> -->
-        <!-- <span>{{ word.0 }}({{ word.1 }})</span> -->
-    <!-- {% endfor %}
-{% endwith %} -->
-
+<!-- https://github.com/wvengen/d3-wordcloud/blob/master/README.md -->
 <div id='wordcloud'></div>
 <script>
   d3.wordcloud()
     .size([800, 400])
     .selector('#wordcloud')
     .words({{words|safe}})
-    .scale('log')
-    .spiral('rectangular')
+    .scale('sqrt')
+    .spiral('archimedean')
     .start();
 </script>
 

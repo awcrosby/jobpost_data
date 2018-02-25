@@ -118,11 +118,11 @@ def index(request):
 
     ''' TEXT PROCESSING '''
     data = get_word_count(dataset)
-    data = [tup for tup in data if tup[0] != query]
+    data = [tup for tup in data if tup[0] != query.lower()]
     words = [{'text': tup[0], 'size': tup[1]} for tup in data]
 
     ''' PREPARE DATA FOR TEMPLATE '''
-    title = '{} job posts matching "{}" out of {} posts in {}. Highest matching skills:'.format(
-            'len(dataset)', query, post_count, query_loc)
+    title = '"{}" matches {}/{} job posts in last month [when not loc]. Highest occurring skills:'.format(
+            query, len(dataset), post_count)
     context = {'title': title, 'data': data, 'form': form, 'words': words}
     return render(request, 'home/index.html', context)
