@@ -81,7 +81,11 @@
         dest: ~/.vimrc
         state: link
 
-    ### Suppervisord + Celery config
+    ### Supervisord + Celery config
+    - name: Create celery user to be used by celeryd and celerybeatd
+      become: true
+      user:
+        name: celery
     - name: Copy supervisord config
       become: true
       copy:

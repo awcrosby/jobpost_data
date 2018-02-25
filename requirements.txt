@@ -9,3 +9,4 @@ textblob
 nltk
 celery
 django-celery-results
+django-celery-beat

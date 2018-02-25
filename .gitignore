@@ -12,3 +12,4 @@ config/ansible/site.retry
 config/ansible/vars.yml
 djangosite/home/migrations/
 logs/
+celerybeat*
