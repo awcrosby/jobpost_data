@@ -14,6 +14,7 @@ from .utils import get_display_results
 import pymongo
 import json
 
+from django_celery_beat.models import CrontabSchedule
 
 # mongod db init and config
 client = pymongo.MongoClient('localhost', 27017)
@@ -46,6 +47,17 @@ def scraper(request):
         'scraper_list': scraper_list,
     }
     return render(request, 'home/scraper.html', context)
+
+
+def reset_scraper_schedule(request):
+    # clear crontab table
+    CrontabSchedule.objects.all().delete()
+    # create many crontab entries mon/thu every hour random min
+    # clear periodictask table
+    # for each location in database add entry with randomly picked crontab
+
+    #from django_celery_beat.models import PeriodicTasks
+    #PeriodicTasks.changed()
 
 
 def start_scraper(request):
