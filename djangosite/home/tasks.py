@@ -14,10 +14,6 @@ import re
 import traceback
 
 
-
-
-
-
 @shared_task
 def get_stackoverflow_skills():
     client = pymongo.MongoClient('localhost', 27017)
@@ -37,7 +33,7 @@ def get_stackoverflow_skills():
 
 
 @shared_task(bind=True)
-def scrape_dice(self, query, query_loc, param_id):
+def scrape_dice(self, query, query_loc, param_id=None):
     # setup vars to track progress of task
     current = 0
     interval = 5  # limit db writes
@@ -164,7 +160,8 @@ def scrape_dice(self, query, query_loc, param_id):
                 meta={'progress': (current/total)*100})
 
     print("\nlen(joblinks) = {}".format(len(joblinks)))
-    s = ScraperParams.objects.get(id=param_id)
-    s.last_queried = datetime.utcnow()
-    s.save()
+    if param_id:
+        s = ScraperParams.objects.get(id=param_id)
+        s.last_queried = datetime.utcnow()
+        s.save()
     return {'jobposts': len(joblinks), 'progress': (current/total)*100}

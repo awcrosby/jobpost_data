@@ -2,7 +2,7 @@ from __future__ import absolute_import, unicode_literals
 
 from django.shortcuts import render
 from .forms import UserQueryForm, ScraperForm, SkillsForm
-from .models import ScraperParams
+from .models import ScraperParams, QueryLoc
 from django.http import HttpResponse
 
 from djangosite.celery import app
@@ -13,8 +13,9 @@ from .text_proc import get_word_count, db_text_search
 from .utils import get_display_results
 import pymongo
 import json
+from random import randint
 
-from django_celery_beat.models import CrontabSchedule
+from django_celery_beat.models import CrontabSchedule, PeriodicTask, PeriodicTasks
 
 # mongod db init and config
 client = pymongo.MongoClient('localhost', 27017)
@@ -50,14 +51,29 @@ def scraper(request):
 
 
 def reset_scraper_schedule(request):
-    # clear crontab table
+    # replace Crontab with many entries
     CrontabSchedule.objects.all().delete()
-    # create many crontab entries mon/thu every hour random min
-    # clear periodictask table
-    # for each location in database add entry with randomly picked crontab
+    days_to_scrape = [1, 4]
+    for day in days_to_scrape:
+        for hour in range(1,24):
+            CrontabSchedule.objects.create(
+                minute=randint(1,59),
+                hour=hour,
+                day_of_week=day
+            )
 
-    #from django_celery_beat.models import PeriodicTasks
-    #PeriodicTasks.changed()
+    # replace PeriodicTask with one for each loc in db w/ random crontab
+    PeriodicTask.objects.all().delete()
+    for loc in QueryLoc.objects.all():
+        PeriodicTask.objects.create(
+            crontab=CrontabSchedule.objects.order_by('?').first(),
+            name='scrape dice for: '+loc.query,
+            task='djangosite.home.tasks.scrape_dice',
+            args=json.dumps(['', loc.query])
+        )
+
+    context = {'title': 'scraper was reset'}
+    return render(request, 'home/index.html', context)
 
 
 def start_scraper(request):
