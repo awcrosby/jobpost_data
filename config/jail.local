@@ -1,0 +1,13 @@
+[DEFAULT]
+bantime  = 6048000
+# 6048000sec = 10 weeks
+findtime = 6048000
+
+destemail  = andrew@awctech.com
+sendername = fail2ban@mediasearch
+
+
+[sshd]
+enabled  = true
+maxretry = 3
+action   = %(action_mwl)s

@@ -1,29 +1,66 @@
 ---
 
-- hosts: myhost  # playbook to setup system as root
-  vars:
-    dest_proj_path: /vagrant
-  vars_files:
-    - vars.yml
+- hosts: myhost  # initial setup
   tasks:
-    ### Initial setup
     - name: Updates package lists for upgrades/new pkg, then upgrades all current packages to the latest version
       become: true
       apt: upgrade=dist update_cache=yes
     - name: Install latest version of packages
       become: true
-      package: name="{{item}}" state=latest
+      package: name="{{ item }}" state=latest
       with_items:
         - python3-pip
         - virtualenv
         - python3-dev
         - rabbitmq-server
         - supervisor
+
+
+- hosts: myhost  # playbook to setup code environment
+  vars:
+    githubuser: awcrosby@gmail.com
+    dest_proj_path: ~/jobpost_data
+    services:
+      - fail2ban
+  tasks:
+    - name: Make project directory
+      file: path={{ dest_proj_path }}/ state=directory
+    - name: Git clone the repo
+      git:
+        repo: https://{{ githubuser | urlencode }}:{{ githubpw }}@github.com/awcrosby/jobpost_data.git
+        dest: {{ dest_proj_path }}
     - name: Create virtual environment and install pip packages
       pip:
         requirements: "{{ dest_proj_path }}/requirements.txt"
         virtualenv: "{{ dest_proj_path }}/venv"
+    - name: Copy fail2ban config
+      become: true
+      copy:
+        src:  "{{ dest_proj_path }}/config/jail.local"
+        dest: /etc/fail2ban/
+    - name: Restart services
+      become: true
+      service: name="{{ item }}" state=restarted
+      changed_when: false
+      with_items: "{{ services }}"
 
+    ### Preferences
+    - name: Turn off bell in terminal
+      lineinfile:
+        path: /etc/inputrc
+        state: present
+        line: 'set bell-style visible'
+    - name: Create symlink for vim settings
+      file:
+        src: "{{ dest_proj_path }}/config/.vimrc"
+        dest: ~/.vimrc
+        state: link
+
+
+- hosts: myhost  # playbook for database setup
+  vars_files:
+    - vars.yml
+  tasks:
     ### MongoDB config
     - name: Add mongodb repo apt_key
       become: true
@@ -69,19 +106,9 @@
                    priv=ALL
                    state=present
 
-    ### Preferences
-    - name: Turn off bell in terminal
-      lineinfile:
-        path: /etc/inputrc
-        state: present
-        line: 'set bell-style visible'
-    - name: Create symlink for vim settings
-      file:
-        src: "{{ dest_proj_path }}/config/.vimrc"
-        dest: ~/.vimrc
-        state: link
 
-    ### Supervisord + Celery config
+- hosts: myhost  # Supervisord + Celery config
+  tasks:
     - name: Create celery user to be used by celeryd and celerybeatd
       become: true
       user:
