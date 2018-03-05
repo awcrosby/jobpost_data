@@ -8,6 +8,7 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
 import os
+import yaml
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,7 +17,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '^e)%5i789kdf98s6x!8)8s_8(i2i$1ad2r+-df!x%)j@u0iwk='
+with open(os.path.join(BASE_DIR, 'config/ansible/vars.yml')) as f:
+    vars_dict = yaml.load(f)
+    SECRET_KEY = vars_dict['secret_key']
+    POSTGRES_PW = vars_dict['postgres_pw']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -72,7 +76,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'jobpost_data',
         'USER': 'django',
-        'PASSWORD': '85I7A1SjZy4q',
+        'PASSWORD': POSTGRES_PW,
         'HOST': 'localhost',
         'PORT': '',
     }
