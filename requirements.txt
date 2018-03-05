@@ -1,6 +1,6 @@
 ## Packages added by developer
 django
-psycopg2
+psycopg2-binary
 pymongo
 requests
 requests-cache
@@ -10,3 +10,4 @@ nltk
 celery
 django-celery-results
 django-celery-beat
+pyyaml
