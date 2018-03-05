@@ -1,0 +1,6 @@
+---
+secret_key: needs-to-be-changed
+
+postgres_name: jobpost_data
+postgres_user: django
+postgres_pw: needs-to-be-changed

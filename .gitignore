@@ -8,7 +8,7 @@ ubuntu-xenial-16.04-cloudimg-console.log
 ###################
 venv/
 __pycache__/
-config/ansible/site.retry
+*.retry
 config/ansible/vars.yml
 djangosite/home/migrations/
 logs/
