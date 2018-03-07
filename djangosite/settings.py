@@ -25,7 +25,9 @@ with open(os.path.join(BASE_DIR, 'config/ansible/vars.yml')) as f:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '54.245.48.169'
+]
 
 # Application definition
 INSTALLED_APPS = [
