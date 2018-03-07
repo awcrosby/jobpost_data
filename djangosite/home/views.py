@@ -16,6 +16,8 @@ import json
 from random import randint
 
 from django_celery_beat.models import CrontabSchedule, PeriodicTask, PeriodicTasks
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # mongod db init and config
 client = pymongo.MongoClient('localhost', 27017)
@@ -50,10 +52,24 @@ def scraper(request):
     return render(request, 'home/scraper.html', context)
 
 
+def auto_scraper(request):
+    last_run = PeriodicTask.objects.only('last_run_at').get(task='scrape dice day#2 for: Indianapolis, IN').last_run_at
+    return 'auto_scraper_test, last run ex: {}'.format(last_run)
+
+
 def reset_scraper_schedule(request):
+    ## add city locations from file
+    #with open(os.path.join(BASE_DIR, 'locs.json')) as f:
+    #    locs = json.loads(f.read())
+    #for loc in locs:
+    #    QueryLoc.objects.create(
+    #        name=loc,
+    #        query=loc
+    #    )
+
     # replace Crontab with many entries
     CrontabSchedule.objects.all().delete()
-    days_to_scrape = [1, 4]
+    days_to_scrape = [2, 5]
     for day in days_to_scrape:
         for hour in range(1,24):
             CrontabSchedule.objects.create(
@@ -65,12 +81,13 @@ def reset_scraper_schedule(request):
     # replace PeriodicTask with one for each loc in db w/ random crontab
     PeriodicTask.objects.all().delete()
     for loc in QueryLoc.objects.all():
-        PeriodicTask.objects.create(
-            crontab=CrontabSchedule.objects.order_by('?').first(),
-            name='scrape dice for: '+loc.query,
-            task='djangosite.home.tasks.scrape_dice',
-            args=json.dumps(['', loc.query])
-        )
+        for day in days_to_scrape:
+            PeriodicTask.objects.create(
+                crontab=CrontabSchedule.objects.filter(day_of_week=day).order_by('?').first(),
+                name='scrape dice day#{} for: {}'.format(day, loc.query),
+                task='djangosite.home.tasks.scrape_dice',
+                args=json.dumps(['', loc.query])
+            )
 
     context = {'title': 'scraper was reset'}
     return render(request, 'home/index.html', context)
@@ -140,7 +157,7 @@ def index(request):
 
     ''' QUERY DATABASE VIA USER KEYWORDS '''
     query = form.cleaned_data['query']
-    query_loc = form.cleaned_data['location'].query
+    query_loc = form.cleaned_data['location'].query.lower()
     dataset = db_text_search(query, query_loc)
     post_count = db.posts.find({'query_loc': query_loc}).count()
 
