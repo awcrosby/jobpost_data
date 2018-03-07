@@ -1,6 +1,8 @@
 ---
 
 - hosts: myhost  # playbook for database setup
+  vars:
+    dest_proj_path: /home/ubuntu/jobpost_data
   vars_files:
     - vars.yml
   tasks:
@@ -48,10 +50,21 @@
                    password={{ postgres_pw }}
                    priv=ALL
                    state=present
-    - name: Perform Django database migrations
+    - name: Changing permission of manage.py, adding "+x"
+      file:
+        dest: "{{dest_proj_path}}/manage.py"
+        mode: +x
+    - name: Make migrations for Django databases
+      django_manage:
+        command: "makemigrations --noinput"
+        app_path: "{{dest_proj_path}}"
+        virtualenv: "{{dest_proj_path}}/venv"
+    - name: Migrate Django databases
       django_manage:
         command: migrate
-        app_path: /home/ubuntu/jobpost_data
+        app_path: "{{dest_proj_path}}"
+        virtualenv: "{{dest_proj_path}}/venv"
+
 
 - hosts: myhost  # Supervisord + Celery config
   tasks:
