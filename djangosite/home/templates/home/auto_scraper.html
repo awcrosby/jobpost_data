@@ -1,0 +1,13 @@
+{% extends 'home/base.html' %}
+{% block content %}
+
+{% load my_filters %}
+
+<div style="margin: 20px 0px 10px 0px; font-weight: bold;">Auto Scraper</div>
+
+<div id="all_db_tasks">
+    <ul>{% for task in tasks %}<li>{{ task }}</li>{% endfor %}</ul>
+</div>
+{{last_run}}
+
+{% endblock %}

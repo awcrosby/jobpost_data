@@ -39,10 +39,10 @@ def scraper(request):
                   'display_result': '',
                   'progress': 0}
         if scraper.task_id:
-            task = TaskResult.objects.get(task_id=scraper.task_id)
-            display_result = get_display_results(scraper.task_id)
-            status['status'] = task.status
-            status['display_result'] = display_result
+            task = TaskResult.objects.filter(task_id=scraper.task_id)
+            if task.count() > 0:
+                status['display_result'] = get_display_results(scraper.task_id)
+                status['status'] = task[0].status
         scraper_list.append((scraper, status))
 
     context = {
@@ -53,8 +53,12 @@ def scraper(request):
 
 
 def auto_scraper(request):
-    last_run = PeriodicTask.objects.only('last_run_at').get(task='scrape dice day#2 for: Indianapolis, IN').last_run_at
-    return 'auto_scraper_test, last run ex: {}'.format(last_run)
+    #last_run = PeriodicTask.objects.get(name='scrape dice day#2 for: Indianapolis, IN')
+    i = app.control.inspect()
+    last_run = i.reserved()
+    tasks = PeriodicTask.objects.all()
+    context = {'tasks': tasks, 'last_run': last_run}
+    return render(request, 'home/auto_scraper.html', context)
 
 
 def reset_scraper_schedule(request):

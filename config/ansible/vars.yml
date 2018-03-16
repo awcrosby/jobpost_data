@@ -1,6 +1,7 @@
 ---
-secret_key: needs-to-be-changed
+
+secret_key: j5k@dhwaJf4J)JHRNV*F8kJ4bg8ER7J%*%<S-F5>^GHH@%*Y$@
 
 postgres_name: jobpost_data
 postgres_user: django
-postgres_pw: needs-to-be-changed
+postgres_pw: 85I7A1SjZy4q 
