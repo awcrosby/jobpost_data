@@ -105,3 +105,4 @@ USE_TZ = False
 STATIC_URL = '/static/'
 
 CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_EXPIRES = 0  # prevents daily clearing of TaskResults table

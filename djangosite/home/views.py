@@ -19,6 +19,7 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask, PeriodicTas
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
 # mongod db init and config
 client = pymongo.MongoClient('localhost', 27017)
 db = client.jobpost_data
@@ -53,11 +54,11 @@ def scraper(request):
 
 
 def auto_scraper(request):
-    #last_run = PeriodicTask.objects.get(name='scrape dice day#2 for: Indianapolis, IN')
-    i = app.control.inspect()
-    last_run = i.reserved()
     tasks = PeriodicTask.objects.all()
-    context = {'tasks': tasks, 'last_run': last_run}
+    i = app.control.inspect()
+    active = list(i.active().values())[0]
+    queue = list(i.reserved().values())[0]
+    context = {'tasks': tasks, 'active': active, 'queue': queue}
     return render(request, 'home/auto_scraper.html', context)
 
 

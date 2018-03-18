@@ -59,11 +59,9 @@
   // check if any status in progress, if so HTTP req for progress
   function check_each_status() {
     $('.js-status').each(function() {
-      //console.log('inside check_each_status:', $(this).text());
       var task_id = $(this).attr('app_task_id');
       var scraper_id = $(this).attr('app_scraper_id');
-      if ($(this).text() == 'PENDING') { console.log('temp if') }
-      if ($(this).text() == 'PENDING' || $(this).text() == 'IN_PROGRESS') {
+      if ($(this).text().trim() == 'PENDING' || $(this).text().trim() == 'IN_PROGRESS') {
         console.log('inside if pending/in_progress');
         $("#button-" + scraper_id).attr('disabled', true)
         $.ajax({

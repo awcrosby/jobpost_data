@@ -19,7 +19,7 @@ stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
               'performance', 'key', 'focus', 'object', 'process', 'center',
               'server', 'components', 'scale', 'user', 'external', 'global',
               'local', 'processing', 'call', 'configuration', 'networking',
-              'resources', 'protocols', 'frameworks'])
+              'resources', 'protocols', 'frameworks', 'click'])
 
 
 def db_text_search(query, query_loc):
