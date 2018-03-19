@@ -31,7 +31,16 @@ db.posts.create_index([('query_loc', 1), ('title', pymongo.TEXT),
 # import pdb; pdb.set_trace()  #### DEBUG
 
 
-def scraper(request):
+def all_tasks(request):
+    auto_tasks = PeriodicTask.objects.all().select_related('crontab')
+    i = app.control.inspect()
+    running_tasks = list(i.active().values())[0]
+    running_tasks.extend(list(i.reserved().values())[0])
+    context = {'auto_tasks': auto_tasks, 'running_tasks': running_tasks}
+    return render(request, 'home/all_tasks.html', context)
+
+
+def manual_tasks(request):
     form = ScraperForm()
     scraper_list = []  # create scraper list with scraper info for display
     scraper_params = ScraperParams.objects.all().order_by('id')
@@ -50,16 +59,7 @@ def scraper(request):
         'form': form,
         'scraper_list': scraper_list,
     }
-    return render(request, 'home/scraper.html', context)
-
-
-def auto_scraper(request):
-    tasks = PeriodicTask.objects.all()
-    i = app.control.inspect()
-    active = list(i.active().values())[0]
-    queue = list(i.reserved().values())[0]
-    context = {'tasks': tasks, 'active': active, 'queue': queue}
-    return render(request, 'home/auto_scraper.html', context)
+    return render(request, 'home/manual_tasks.html', context)
 
 
 def reset_scraper_schedule(request):
@@ -91,61 +91,11 @@ def reset_scraper_schedule(request):
                 crontab=CrontabSchedule.objects.filter(day_of_week=day).order_by('?').first(),
                 name='scrape dice day#{} for: {}'.format(day, loc.query),
                 task='djangosite.home.tasks.scrape_dice',
-                args=json.dumps(['', loc.query])
+                kwargs=json.dumps({'query': '', 'query_loc': loc.query})
             )
 
     context = {'title': 'scraper was reset'}
     return render(request, 'home/index.html', context)
-
-
-def start_scraper(request):
-    data = 'error'
-    if request.is_ajax():  # ajax view to get progress of task
-        if 'scraper_id' in request.POST.keys() and request.POST['scraper_id']:
-            s = ScraperParams.objects.get(id=request.POST['scraper_id'])
-            task = scrape_dice.delay(query=s.query,  # send task to celery
-                                     query_loc=s.query_loc.query,
-                                     param_id=s.id)
-            task = TaskResult(task_id=task.task_id)
-            task.save()  # makes obj able to query right away
-            s.task_id = task.task_id
-            s.save()  # write task_id to scraper_params obj
-            data = { 'task_id': task.task_id }
-    json_data = json.dumps(data)
-    return HttpResponse(json_data, content_type='application/json')
-
-
-def get_task_progress(request):
-    data = 'error'
-    if request.is_ajax():  # ajax view to get progress of task
-        if 'task_id' in request.GET.keys() and request.GET['task_id']:
-            task_id = request.GET['task_id']
-            task = AsyncResult(task_id)  #TODO try except if celery is down, log it
-
-            progress = 0
-            if task.status == 'IN_PROGRESS' or task.status == 'SUCCESS':
-                if 'progress' in task.result:
-                    progress = task.result['progress']
-
-            data = {
-                'status': task.status,
-                'progress': progress,
-                'display_result': get_display_results(task_id)
-            }
-    json_data = json.dumps(data)
-    return HttpResponse(json_data, content_type='application/json')
-
-
-def skills(request):
-    if request.method == 'POST':
-        form = SkillsForm(request.POST)  # populate form with data from request
-        if form.is_valid():   # process the data in form.cleaned_data
-            get_stackoverflow_skills.delay()
-        else:
-            form = SkillsForm()
-    else:  # if not POST, then create a new form
-        form = SkillsForm()
-    return render(request, 'home/skills.html', {'form': form})
 
 
 def index(request):
@@ -172,7 +122,7 @@ def index(request):
     words = [{'text': tup[0], 'size': tup[1]} for tup in data]
 
     ''' PREPARE DATA FOR TEMPLATE '''
-    title = '"{}" matches {}/{} job posts in last month [when not loc]. Highest occurring skills:'.format(
+    intro = '"{}" matches {}/{} job posts in last month [when not loc]. Highest occurring skills:'.format(
             query, len(dataset), post_count)
-    context = {'title': title, 'data': data, 'form': form, 'words': words}
+    context = {'intro': intro, 'data': data, 'form': form, 'words': words}
     return render(request, 'home/index.html', context)

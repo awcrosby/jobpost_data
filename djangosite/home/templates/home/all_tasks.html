@@ -1,0 +1,91 @@
+{% extends 'home/base.html' %}
+{% block content %}
+
+{% load my_filters %}
+
+<div id="running_tasks">
+  <h3>Running Tasks (active or pending in queue)</h3>
+  {% if running_tasks %}
+  <table>
+    <tr>  
+      <th>Base Task</th>
+      <th>Args</th>
+      <th>Keyword Args</th>
+    </tr>
+    {% for task in running_tasks %} <tr>
+      <td>{{ task.name }}</td>
+      <td>{{ task.args }}</td>
+      <td>{{ task.kwargs }}</td>
+    </tr>{% endfor %}
+  </table>
+  {% else %}
+    <p>No running tasks</p>
+  {% endif %}
+</div>
+
+<div id="auto_tasks">
+  <h3>Auto Tasks (scheduled via Celery Beat)</h3>
+  <p>Add entry to <a href="/admin/django_celery_beat/periodictask/">Periodic Task table</a> for new auto task</p>
+  <table>
+    <tr>
+      <th>Base Task</th>
+      <th>Keyword Args</th>
+      <th>Crontab Schedule</th>
+      <th>Last Run</th>
+    </tr>
+    {% for task in auto_tasks %}<tr>
+      <td>{{ task.task }}</td>
+      <td>{{ task.kwargs }}</td>
+      <td>{{ task.crontab }}</td>
+      <td>{{ task.last_run_at }}</td>
+    </tr>{% endfor %}
+    
+  </table>
+</div>
+
+<section class="button-updates">
+  <h3>Task to Update Skills from Stackoverflow tags</h3>
+  <button id="update_skills">Update Skills</button>
+  <p id="skills_msg"></p>
+</section>
+
+<section class="button-updates">
+  <h3>Clear and Reload Query Locations from File</h3>
+  <button id="reload_locations">Reload Locations</button>
+  <p id="loc_msg"></p>
+</section>
+
+<section class="button-updates">
+  <h3>Task to Update Skills from Stackoverflow tags</h3>
+  <button id="update_skills">Update Skills</button>
+  <p id="skills_msg"></p>
+</section>
+
+{% endblock %}
+
+
+{% block javascript %}
+<script>
+  // start skills update task
+  $('#update_skills').click(function() {
+    $(this).attr('disabled', true)
+    $.ajax({
+      url: '{% url "skills_update" %}',
+      success: function(data) {
+        $('#skills_msg').html(data.response);
+      }
+    });
+  });
+
+  // reload locations
+  $('#reload_locations').click(function() {
+    $(this).attr('disabled', true)
+    $.ajax({
+      url: '{% url "reload_locations" %}',
+      success: function(data) {
+        $('#loc_msg').html(data.response);
+      }
+    });
+  });
+</script>
+{% endblock %}

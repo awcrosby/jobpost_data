@@ -1,12 +1,13 @@
 from django.urls import path
-from . import views
+from . import views, utils
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('scraper/', views.scraper, name='scraper'),
-    path('skills/', views.skills, name='skills'),
-    path('auto_scraper/', views.auto_scraper, name='auto_scraper'),
+    path('manual_tasks/', views.manual_tasks, name='manual_tasks'),
+    path('all_tasks/', views.all_tasks, name='all_tasks'),
     path('reset_scraper_schedule/', views.reset_scraper_schedule, name='reset_scraper_schedule'),
-    path('ajax/get_task_progress/', views.get_task_progress, name='get_task_progress'),
-    path('ajax/start_scraper/', views.start_scraper, name='start_scraper'),
+    path('ajax/skills_update/', utils.skills_update, name='skills_update'),
+    path('ajax/reload_locations/', utils.reload_locations, name='reload_locations'),
+    path('ajax/get_task_progress/', utils.get_task_progress, name='get_task_progress'),
+    path('ajax/start_scraper/', utils.start_scraper, name='start_scraper'),
 ]
