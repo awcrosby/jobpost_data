@@ -26,7 +26,7 @@ with open(os.path.join(BASE_DIR, 'config/ansible/vars.yml')) as f:
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '54.245.48.169'
+    '54.244.195.8'
 ]
 
 # Application definition
@@ -105,3 +105,4 @@ USE_TZ = False
 STATIC_URL = '/static/'
 
 CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_EXPIRES = 0  # prevents daily clearing of TaskResults table

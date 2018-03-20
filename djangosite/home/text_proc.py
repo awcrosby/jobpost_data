@@ -19,7 +19,7 @@ stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
               'performance', 'key', 'focus', 'object', 'process', 'center',
               'server', 'components', 'scale', 'user', 'external', 'global',
               'local', 'processing', 'call', 'configuration', 'networking',
-              'resources', 'protocols', 'frameworks'])
+              'resources', 'protocols', 'frameworks', 'click'])
 
 
 def db_text_search(query, query_loc):
@@ -38,6 +38,9 @@ def get_word_count(dataset):
             fieldwords = re.split('\-| |,|\. |; |: |\/|\n|\(|\)', doc[field])
             docwords = docwords.union(set(fieldwords))
         allwords.extend(docwords)
+        if time.time()-start > 30:
+            print('timeout while scanning query dataset')
+            return 'timeout'
     print('parse {}, TIME: {:.3f}s'.format(len(allwords), time.time()-start))
     allwords = [w.lower() for w in allwords]
     allwords = [w for w in allwords if w not in stops]

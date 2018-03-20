@@ -1,8 +1,14 @@
 .clearfix:after { content: '';  clear: both;  display: table; }
 
-h3 { text-decoration: underline; }
+.container { padding: 20px 0 50px 0; }
 
-table, th, td { border: 1px solid gray; border-collapse: collapse; padding: 1px 3px 2px 3px; }
+/* css for fixed and centered navbar */
+body { padding-top: 56px; }
+nav .container { padding: 0; }
+.navbar-brand { font-family: "Trebuchet MS", Helvetica, sans-serif; font-weight: bolder }
+
+table, th, td { border: 1px solid gray; border-collapse: collapse; padding: 0px 7px 2px 7px; } 
+table { margin-bottom: 20px; }
 
 .progressbar { background-color: #aaa; border-radius: 5px; width: 105px; }
 .bar-inner { background-color: #085; border-radius: 5px; }
