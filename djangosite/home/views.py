@@ -1,21 +1,14 @@
 from __future__ import absolute_import, unicode_literals
 
 from django.shortcuts import render
-from .forms import UserQueryForm, ScraperForm, SkillsForm
-from .models import ScraperParams, QueryLoc
-from django.http import HttpResponse
-
-from djangosite.celery import app
-from django_celery_results.models import TaskResult
-from celery.result import AsyncResult
-from .tasks import scrape_dice, get_stackoverflow_skills
+from .forms import UserQueryForm, ScraperForm
+from .models import ScraperParams
 from .text_proc import get_word_count, db_text_search
 from .utils import get_display_results
+from djangosite.celery import app
+from django_celery_results.models import TaskResult
+from django_celery_beat.models import PeriodicTask
 import pymongo
-import json
-from random import randint
-
-from django_celery_beat.models import CrontabSchedule, PeriodicTask, PeriodicTasks
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -32,6 +25,11 @@ db.posts.create_index([('query_loc', 1), ('title', pymongo.TEXT),
 
 
 def all_tasks(request):
+    """HTTP endpoint that lists running tasks and auto-scheduled tasks.
+
+    Returns:
+        Object for django html template
+    """
     auto_tasks = PeriodicTask.objects.all().select_related('crontab')
     i = app.control.inspect()
     running_tasks = list(i.active().values())[0]
@@ -41,6 +39,12 @@ def all_tasks(request):
 
 
 def manual_tasks(request):
+    """HTTP endpoint that lists manual tasks in ScraperParams table,
+    with ability to start tasks and view progress.
+
+    Returns:
+        Object for django html template
+    """
     form = ScraperForm()
     scraper_list = []  # create scraper list with scraper info for display
     scraper_params = ScraperParams.objects.all().order_by('id')
@@ -62,44 +66,14 @@ def manual_tasks(request):
     return render(request, 'home/manual_tasks.html', context)
 
 
-def reset_scraper_schedule(request):
-    ## add city locations from file
-    #with open(os.path.join(BASE_DIR, 'locs.json')) as f:
-    #    locs = json.loads(f.read())
-    #for loc in locs:
-    #    QueryLoc.objects.create(
-    #        name=loc,
-    #        query=loc
-    #    )
-
-    # replace Crontab with many entries
-    CrontabSchedule.objects.all().delete()
-    days_to_scrape = [2, 5]
-    for day in days_to_scrape:
-        for hour in range(1,24):
-            CrontabSchedule.objects.create(
-                minute=randint(1,59),
-                hour=hour,
-                day_of_week=day
-            )
-
-    # replace PeriodicTask with one for each loc in db w/ random crontab
-    PeriodicTask.objects.all().delete()
-    for loc in QueryLoc.objects.all():
-        for day in days_to_scrape:
-            PeriodicTask.objects.create(
-                crontab=CrontabSchedule.objects.filter(day_of_week=day).order_by('?').first(),
-                name='scrape dice day#{} for: {}'.format(day, loc.query),
-                task='djangosite.home.tasks.scrape_dice',
-                kwargs=json.dumps({'query': '', 'query_loc': loc.query})
-            )
-
-    context = {'title': 'scraper was reset'}
-    return render(request, 'home/index.html', context)
-
-
 def index(request):
-    ''' GET FORM DATA '''
+    """HTTP endpoint that allows user to query jobposts with a keyword,
+    displays a wordcloud and graph.
+
+    Returns:
+        Object for django html template
+    """
+    ## GET FORM DATA
     if request.method != 'GET':
         form = UserQueryForm()  # create new form
         context = {'title': 'enter query', 'results': [], 'form': form}
@@ -110,18 +84,18 @@ def index(request):
         context = {'title': 'enter query', 'results': [], 'form': form}
         return render(request, 'home/index.html', context)
 
-    ''' QUERY DATABASE VIA USER KEYWORDS '''
+    ## QUERY DATABASE VIA USER KEYWORDS
     query = form.cleaned_data['query']
     query_loc = form.cleaned_data['location'].query.lower()
     dataset = db_text_search(query, query_loc)
     post_count = db.posts.find({'query_loc': query_loc}).count()
 
-    ''' TEXT PROCESSING '''
+    ## TEXT PROCESSING
     data = get_word_count(dataset)
     data = [tup for tup in data if tup[0] != query.lower()]
     words = [{'text': tup[0], 'size': tup[1]} for tup in data]
 
-    ''' PREPARE DATA FOR TEMPLATE '''
+    ## PREPARE DATA FOR TEMPLATE
     intro = '"{}" matches {}/{} job posts in last month [when not loc]. Highest occurring skills:'.format(
             query, len(dataset), post_count)
     context = {'intro': intro, 'data': data, 'form': form, 'words': words}

@@ -3,27 +3,25 @@
 
 {% load my_filters %}
 
-<div id="running_tasks">
+<section class="all_tasks">
   <h3>Running Tasks (active or pending in queue)</h3>
   {% if running_tasks %}
   <table>
     <tr>  
       <th>Base Task</th>
-      <th>Args</th>
       <th>Keyword Args</th>
     </tr>
     {% for task in running_tasks %} <tr>
       <td>{{ task.name }}</td>
-      <td>{{ task.args }}</td>
       <td>{{ task.kwargs }}</td>
     </tr>{% endfor %}
   </table>
   {% else %}
     <p>No running tasks</p>
   {% endif %}
-</div>
+</section>
 
-<div id="auto_tasks">
+<section class="all_tasks">
   <h3>Auto Tasks (scheduled via Celery Beat)</h3>
   <p>Add entry to <a href="/admin/django_celery_beat/periodictask/">Periodic Task table</a> for new auto task</p>
   <table>
@@ -41,24 +39,25 @@
     </tr>{% endfor %}
     
   </table>
-</div>
+</section>
 
-<section class="button-updates">
+<section class="all_tasks">
   <h3>Task to Update Skills from Stackoverflow tags</h3>
   <button id="update_skills">Update Skills</button>
   <p id="skills_msg"></p>
 </section>
 
-<section class="button-updates">
+<section class="all_tasks">
   <h3>Clear and Reload Query Locations from File</h3>
+  <p class="warn">Warning: this will also delete all Manual Tasks, since they rely on locations</p>
   <button id="reload_locations">Reload Locations</button>
   <p id="loc_msg"></p>
 </section>
 
-<section class="button-updates">
-  <h3>Task to Update Skills from Stackoverflow tags</h3>
-  <button id="update_skills">Update Skills</button>
-  <p id="skills_msg"></p>
+<section class="all_tasks">
+  <h3>Reset Auto Scraper Crontabs and Scheduled Tasks</h3>
+  <button id="reset_scraper_schedule">Reset Auto Scraper</button>
+  <p id="scraper_msg"></p>
 </section>
 
 {% endblock %}
@@ -84,6 +83,17 @@
       url: '{% url "reload_locations" %}',
       success: function(data) {
         $('#loc_msg').html(data.response);
+      }
+    });
+  });
+
+  // reset auto scraper
+  $('#reset_scraper_schedule').click(function() {
+    $(this).attr('disabled', true)
+    $.ajax({
+      url: '{% url "reset_scraper_schedule" %}',
+      success: function(data) {
+        $('#scraper_msg').html(data.response);
       }
     });
   });

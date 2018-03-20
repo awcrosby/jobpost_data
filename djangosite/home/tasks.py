@@ -16,6 +16,10 @@ import traceback
 
 @shared_task
 def get_stackoverflow_skills():
+    """Celery task that scrapes stackoverflow tags and writes to mongodb.
+
+    Returns: None
+    """
     client = pymongo.MongoClient('localhost', 27017)
     db = client.jobpost_data
 
@@ -34,6 +38,16 @@ def get_stackoverflow_skills():
 
 @shared_task(bind=True)
 def scrape_dice(self, query, query_loc, param_id=None):
+    """Celery task that scrapes dice jobposts and writes to mongodb.
+
+    Args:
+        query: search param for dice, empty string '' searches all
+        query_loc: location search param for dice
+        param_id: ScraperParams id ties task progress to manual task
+
+    Returns:
+        dictionary: contains final task result to store in TaskResults when completed
+    """
     # setup vars to track progress of task
     current = 0
     interval = 5  # limit db writes
