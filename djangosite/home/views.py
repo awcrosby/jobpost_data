@@ -31,10 +31,29 @@ def all_tasks(request):
         Object for django html template
     """
     auto_tasks = PeriodicTask.objects.all().select_related('crontab')
+
     i = app.control.inspect()
     running_tasks = list(i.active().values())[0]
     running_tasks.extend(list(i.reserved().values())[0])
-    context = {'auto_tasks': auto_tasks, 'running_tasks': running_tasks}
+
+    form = ScraperForm()
+    scraper_list = []  # create manual tasks list of scrapers
+    scraper_params = ScraperParams.objects.all().order_by('id')
+    for scraper in scraper_params:
+        status = {'status': 'NOT QUERIED YET',
+                  'display_result': '',
+                  'progress': 0}
+        if scraper.task_id:
+            task = TaskResult.objects.filter(task_id=scraper.task_id)
+            if task.count() > 0:
+                status['display_result'] = get_display_results(scraper.task_id)
+                status['status'] = task[0].status
+        scraper_list.append((scraper, status))
+
+    context = {'auto_tasks': auto_tasks,
+               'running_tasks': running_tasks,
+               'scraper_list': scraper_list,
+               'form': form}
     return render(request, 'home/all_tasks.html', context)
 
 

@@ -10,14 +10,51 @@
     <tr>  
       <th>Base Task</th>
       <th>Keyword Args</th>
+      <th>Status</th>
     </tr>
     {% for task in running_tasks %} <tr>
       <td>{{ task.name }}</td>
       <td>{{ task.kwargs }}</td>
+      <td>
+        <div id="status-{{task.id}}"
+             app_task_id="{{task.id}}"
+             class="js-status">{{task.status}}
+        </div>
+        <div class="progressbar">
+          <div id="bar-{{task.id}}" class="bar-inner"></div>
+        </div>
+      </td>
     </tr>{% endfor %}
   </table>
   {% else %}
     <p>No running tasks</p>
+  {% endif %}
+</section>
+
+<section class="all_tasks">
+  <h3>Manual Tasks</h3>
+  <p>Add entry to <a href="/admin/home/scraperparams/">Scraper Params table</a> for new manual task</p>
+  {% if scraper_list %}
+  <table>
+    <tr>
+      <th></th>
+      <th>Scraper Parameters</th>
+      <th>Results</th>
+    </tr>
+    {% for scraper, status in scraper_list %}
+      <tr>
+        <td>
+          <button id="button-{{scraper.id}}"
+                  app_scraper_id="{{scraper.id}}"
+                  class="js-scrape">Start</button>
+        </td>
+        <td>{{scraper}}</td>
+        <td><div id="res-{{scraper.id}}">{{status.display_result}}</div></td>
+      </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <p>No manual tasks</p>
   {% endif %}
 </section>
 
@@ -35,7 +72,7 @@
       <td>{{ task.task }}</td>
       <td>{{ task.kwargs }}</td>
       <td>{{ task.crontab }}</td>
-      <td>{{ task.last_run_at }}</td>
+      <td>{{ task.last_run_at }} UTC</td>
     </tr>{% endfor %}
     
   </table>
@@ -65,6 +102,48 @@
 
 {% block javascript %}
 <script>
+  // start scraper
+  $('.js-scrape').click(function() {
+    $(this).attr('disabled', true)
+    var scraper_id = $(this).attr('app_scraper_id');
+    $.ajax({
+      url: '{% url "start_scraper" %}',
+      type: 'POST',
+      data: {
+        scraper_id: scraper_id,
+        csrfmiddlewaretoken: "{{csrf_token}}"
+      },
+      dataType: 'json',
+      success: function (data) {
+        $("#status-" + scraper_id).attr('app_task_id', data.task_id);
+        $("#status-" + scraper_id).html('PENDING');
+        location.reload()
+      }
+    });
+  });
+
+  // check if any status in progress, if so HTTP req for progress
+  function check_each_status() {
+    $('.js-status').each(function() {
+      var task_id = $(this).attr('app_task_id');
+      //console.log('inside if check_each_status()');
+      $.ajax({
+          url: '{% url "get_task_progress" %}',
+          data: { 'task_id': task_id },
+          dataType: 'json',
+          success: function (data) {
+            $("#bar-" + task_id).css("width", data.progress + "%");
+            $("#bar-" + task_id).css("height", "18px");
+            $("#status-" + task_id).html(data.status);
+            $("#res-" + task_id).html(data.display_result);
+          }
+      });
+    });
+  };
+  setInterval(check_each_status, 2000);
+  $( document ).ready(check_each_status);
+
+
   // start skills update task
   $('#update_skills').click(function() {
     $(this).attr('disabled', true)

@@ -26,7 +26,7 @@ with open(os.path.join(BASE_DIR, 'config/ansible/vars.yml')) as f:
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '54.244.195.8'
+    '34.214.201.88'
 ]
 
 # Application definition

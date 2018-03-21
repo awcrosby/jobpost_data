@@ -26,7 +26,8 @@ def get_display_results(task_id):
     elif task.status == 'SUCCESS':
         display_result = '{} posts scraped on {} UTC'.format(
             json.loads(task.result)['jobposts'],
-            task.date_done.strftime('%Y-%m-%d %H:%M'))
+            #task.date_done.strftime('%Y-%m-%d %H:%M'))
+            task.date_done.strftime('%B %d, %Y %I:%M %p'))
     return display_result
 
 
@@ -70,7 +71,7 @@ def reset_scraper_schedule(request):
     if request.is_ajax():  
         # set/reset Crontab with many entries
         CrontabSchedule.objects.all().delete()
-        days_to_scrape = [2, 5]
+        days_to_scrape = [3, 1]
         for day in days_to_scrape:
             for hour in range(1,24):
                 CrontabSchedule.objects.create(

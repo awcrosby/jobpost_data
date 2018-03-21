@@ -6,6 +6,7 @@
 body { padding-top: 56px; }
 nav .container { padding: 0; }
 .navbar-brand { font-family: "Trebuchet MS", Helvetica, sans-serif; font-weight: bolder }
+.nav-link { padding: 0 0.8rem 0 0.8rem !important; }
 
 form input, form select { margin: 0 5px 0 5px; }
 form label { padding-left: 5px; }
@@ -13,8 +14,8 @@ form label { padding-left: 5px; }
 table, th, td { border: 1px solid gray; border-collapse: collapse; padding: 0px 7px 2px 7px; } 
 table { margin-bottom: 20px; }
 
-.progressbar { background-color: #aaa; border-radius: 5px; width: 105px; }
-.bar-inner { background-color: #085; border-radius: 5px; }
+.progressbar { background-color: #aaa; border-radius: 2px; width: 105px; }
+.bar-inner { background-color: #085; border-radius: 2px; }
 
 .all_tasks { margin-bottom: 40px; }
 .warn { color: red; margin-bottom: 5px; }

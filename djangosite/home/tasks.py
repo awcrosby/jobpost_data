@@ -12,6 +12,7 @@ import math
 from datetime import datetime, timedelta
 import re
 import traceback
+from time import sleep
 
 
 @shared_task
@@ -50,7 +51,7 @@ def scrape_dice(self, query, query_loc, param_id=None):
     """
     # setup vars to track progress of task
     current = 0
-    interval = 5  # limit db writes
+    interval = 7  # limit db writes
     self.update_state(state='IN_PROGRESS',
         meta={'progress': 0})
 
@@ -80,6 +81,7 @@ def scrape_dice(self, query, query_loc, param_id=None):
     joblinks = []
     for page in pagelinks:
         try:
+            sleep(0.2)
             r = requests.get(base_url + page)
             soup = BeautifulSoup(r.text, 'html.parser')
             divs = soup.find_all('div', 'complete-serp-result-div')
@@ -96,8 +98,25 @@ def scrape_dice(self, query, query_loc, param_id=None):
             print("\nGENERAL SCRAPER ERR page: {}\n".format(page))
 
     # get all job dicts and put into jobs list
-    for joblink in joblinks:
+    scrape_count = 0
+    for count, joblink in enumerate(joblinks):
+        # track and set progress
+        current += 1
+        if (current % interval) == 0:
+            self.update_state(state='IN_PROGRESS',
+                meta={'progress': (current/total)*100})
+        if (count+1) % 50 == 0:
+            print('for {}: {} joblinks processed, {} joblinks scraped'.format(
+                query_loc, count+1, scrape_count))
+
+        # exit if url already in database
+        job_url = base_url + joblink.split('?')[0]
+        if db.posts.find_one({'url': job_url}):
+            continue
+
+        scrape_count += 1
         try:
+            sleep(0.2)
             r = requests.get(base_url + joblink)
             soup = BeautifulSoup(r.text, 'html.parser')
             job = {}
@@ -106,7 +125,7 @@ def scrape_dice(self, query, query_loc, param_id=None):
             job['query'] = query.lower()
             job['query_loc'] = query_loc.lower()
             job['timestamp'] = datetime.utcnow()
-            job['url'] = base_url + joblink.split('?')[0]
+            job['url'] = job_url
 
             # get basic job info
             job['title'] = soup.find('h1', 'jobTitle').getText(' ')
@@ -162,16 +181,9 @@ def scrape_dice(self, query, query_loc, param_id=None):
 
             # insert or update job into database
             db.posts.update({'url': job['url']}, job, upsert=True)
-            print('.', end='', flush=True)
         except Exception as e:
             traceback.print_exc()
             print("\nGENERAL SCRAPER ERR job['url']: {}\n".format(job['url']))
-
-        # track and set progress
-        current += 1
-        if (current % interval) == 0:
-            self.update_state(state='IN_PROGRESS',
-                meta={'progress': (current/total)*100})
 
     print("\nlen(joblinks) = {}".format(len(joblinks)))
     if param_id:
