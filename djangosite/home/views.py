@@ -1,9 +1,10 @@
 from __future__ import absolute_import, unicode_literals
 
 from django.shortcuts import render
+from django.http import HttpResponse
 from .forms import UserQueryForm, ScraperForm
 from .models import ScraperParams
-from .text_proc import get_word_count, db_text_search
+from .text_proc import get_word_count, db_text_search, db_query_by_date
 from .utils import get_display_results
 from djangosite.celery import app
 from django_celery_results.models import TaskResult
@@ -92,7 +93,7 @@ def index(request):
     Returns:
         Object for django html template
     """
-    ## GET FORM DATA
+    # GET FORM DATA
     if request.method != 'GET':
         form = UserQueryForm()  # create new form
         context = {'title': 'enter query', 'results': [], 'form': form}
@@ -103,19 +104,23 @@ def index(request):
         context = {'title': 'enter query', 'results': [], 'form': form}
         return render(request, 'home/index.html', context)
 
-    ## QUERY DATABASE VIA USER KEYWORDS
+    # QUERY DATABASE VIA USER KEYWORDS
     query = form.cleaned_data['query']
     query_loc = form.cleaned_data['location'].query.lower()
-    dataset = db_text_search(query, query_loc)
-    post_count = db.posts.find({'query_loc': query_loc}).count()
+    result_docs = db_text_search(query, query_loc)
+    loc_count = db.posts.find({'query_loc': query_loc}).count()
+    date_counts = db_query_by_date(query, query_loc)
 
-    ## TEXT PROCESSING
-    data = get_word_count(dataset)
-    data = [tup for tup in data if tup[0] != query.lower()]
-    words = [{'text': tup[0], 'size': tup[1]} for tup in data]
+    # TEXT PROCESSING
+    word_counts = get_word_count(result_docs)
+    word_counts = [tup for tup in word_counts if tup[0] != query.lower()]
+    words = [{'text': tup[0], 'size': tup[1]} for tup in word_counts]
 
-    ## PREPARE DATA FOR TEMPLATE
-    intro = '"{}" matches {}/{} job posts in last month [when not loc]. Highest occurring skills:'.format(
-            query, len(dataset), post_count)
-    context = {'intro': intro, 'data': data, 'form': form, 'words': words}
+    # PREPARE DATA FOR TEMPLATE
+    intro = ('"{}" matches {}/{}'.format(query, len(result_docs), loc_count) +
+             ' job posts in last month. Highest occurring skills:')
+    context = {'query': query, 'res_count': len(result_docs),
+               'all_posts': loc_count, 'form': form, 'words': words,
+               'word_counts': word_counts, 'date_counts': date_counts}
     return render(request, 'home/index.html', context)
+

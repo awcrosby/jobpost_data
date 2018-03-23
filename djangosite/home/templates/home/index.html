@@ -2,17 +2,25 @@
 {% block content %}
   {% load my_filters %}
 
-  <h2>Search Jobposts</h2>
+  <h2>Enter a tech skill</h2>
 
   <form action="" method="get">
     {% csrf_token %}
     {{ form }}
-    <input type="submit" value="Search" />
+    <input type="submit" value="Enter" />
   </form>
 
-  <p>{{ intro }}</p>
-  <div id='wordcloud'></div>
-  <div>{{words}}</div>
+  {% if query %}
+    <h5>"{{query}}" matched {{res_count}}/{{all_posts}} jobposts in last 30 days across the US</h5>
+    <h5>Highest occuring skills in the results:</h5>
+    <div id='wordcloud'></div>
+    <!-- <div>{{words}}</div> -->
+
+    <h4>Jobpost results by city</h4>
+    <div id="loc_post_graph">loc_post_graph</div>
+    <div>date_counts: {{date_counts}}</div>
+  {% endif %}
+
 {% endblock %}
 
 

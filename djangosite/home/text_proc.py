@@ -1,9 +1,9 @@
 import pymongo
 import collections
 import time
-import textblob
 import nltk
 import re
+from datetime import datetime, timedelta
 # nltk.download('stopwords')
 from nltk.corpus import stopwords
 
@@ -23,40 +23,59 @@ stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
 
 
 def db_text_search(query, query_loc):
+    """Return mongo docs via text search for given location"""
     cur = db.posts.find({'query_loc': query_loc,
                          '$text': {'$search': query}})
     return [doc for doc in cur]
 
 
-def get_word_count(dataset):
-    # get count of single words
+def db_query_by_date(query, query_loc):
+    """Query mongodb for count of matching docs by groups of n days
+    
+    Return:
+        List: count of docs in last n*1 days, last n*2 days, etc.
+    """
+    n = 3
+    count_by_date = []
+    for daygroup in range(1, 9):
+        c = db.posts.find({
+            'query_loc': query_loc,
+            '$text': {'$search': query},
+            'posted': {
+                '$lt': datetime.utcnow() - timedelta(days=n*(daygroup-1)),
+                '$gte': datetime.utcnow() - timedelta(days=n*daygroup)}
+        })
+        count_by_date.append(c.count())
+
+    return count_by_date
+
+
+def get_word_count(mongo_docs):
+    """Return Counter of most common words in passed docs"""
     allwords = []
     start = time.time()
-    for i, doc in enumerate(dataset):
+    for i, doc in enumerate(mongo_docs):
         docwords = set()
         for field in ['skills', 'title', 'desc']:
             fieldwords = re.split('\-| |,|\. |; |: |\/|\n|\(|\)', doc[field])
             docwords = docwords.union(set(fieldwords))
         allwords.extend(docwords)
         if time.time()-start > 30:
-            print('timeout while scanning query dataset')
+            print('timeout while scanning mongo docs')
             return 'timeout'
     print('parse {}, TIME: {:.3f}s'.format(len(allwords), time.time()-start))
+
     allwords = [w.lower() for w in allwords]
     allwords = [w for w in allwords if w not in stops]
-    allwords = skill_whitelist(allwords)  # filter by stackoverflow skills
+
+    # filter by stackoverflow skill tags
+    whitelist = db.skills.find_one({'source': 'stackoverflow'})['skills']
+    whitelist = set(whitelist)
+    allwords = [w for w in allwords if w in whitelist]
+
     count = collections.Counter(allwords)
     print('after stop/skills/count, TIME: {:.3f}s'.format(time.time()-start))
     return count.most_common(60)
-
-
-def skill_whitelist(skills_to_filter):
-    whitelist = db.skills.find_one({'source': 'stackoverflow'})['skills']
-    whitelist = set(whitelist)
-    ''' FYI top skills in 'desc' are design, env, position, client, comm
-        using, system, project... if whitelist had only true tech skills
-        then could count words in 'desc' field (but takes ~3.7sec) '''
-    return [s for s in skills_to_filter if s in whitelist]
 
 
 # def get_top_employers():

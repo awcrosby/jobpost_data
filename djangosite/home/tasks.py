@@ -1,7 +1,6 @@
 # Create your tasks here
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
-from django_celery_results.models import TaskResult
 
 import pymongo
 from .models import ScraperParams
@@ -9,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 import urllib
 import math
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
 import traceback
 from time import sleep
@@ -26,6 +25,7 @@ def get_stackoverflow_skills():
 
     skills = []
     base_url = 'https://stackoverflow.com'
+    print('starting stackoverflow scrape of tags')
     for n in range(60):
         r = requests.get(base_url + '/tags?page={}&tab=popular'.format(n))
         soup = BeautifulSoup(r.text, 'html.parser')
@@ -35,6 +35,7 @@ def get_stackoverflow_skills():
 
     data = {'source': 'stackoverflow', 'skills': skills}
     db.skills.update({'source': 'stackoverflow'}, data, upsert=True)
+    print('completed stackoverflow task: {} skill tags'.format(len(skills)))
 
 
 @shared_task(bind=True)
@@ -47,13 +48,13 @@ def scrape_dice(self, query, query_loc, param_id=None):
         param_id: ScraperParams id ties task progress to manual task
 
     Returns:
-        dictionary: contains final task result to store in TaskResults when completed
+        dictionary: has final task result to store in TaskResults
     """
     # setup vars to track progress of task
     current = 0
     interval = 7  # limit db writes
     self.update_state(state='IN_PROGRESS',
-        meta={'progress': 0})
+                      meta={'progress': 0})
 
     client = pymongo.MongoClient('localhost', 27017)
     db = client.jobpost_data
@@ -86,26 +87,26 @@ def scrape_dice(self, query, query_loc, param_id=None):
             soup = BeautifulSoup(r.text, 'html.parser')
             divs = soup.find_all('div', 'complete-serp-result-div')
             joblinks += [d.find('a', 'dice-btn-link')['href'] for d in divs]
-            print('page of links: {}'.format(page))
 
             # track and set progress
             current += 1
             if (current % interval) == 0:
                 self.update_state(state='IN_PROGRESS',
-                    meta={'progress': (current/total)*100})
+                                  meta={'progress': (current/total)*100})
         except Exception as e:
             traceback.print_exc()
             print("\nGENERAL SCRAPER ERR page: {}\n".format(page))
 
     # get all job dicts and put into jobs list
+    print('for {}: scraped {}pages of links'.format(query_loc, len(pagelinks)))
     scrape_count = 0
     for count, joblink in enumerate(joblinks):
         # track and set progress
         current += 1
         if (current % interval) == 0:
             self.update_state(state='IN_PROGRESS',
-                meta={'progress': (current/total)*100})
-        if (count+1) % 50 == 0:
+                              meta={'progress': (current/total)*100})
+        if (count+1) % 100 == 0:
             print('for {}: {} joblinks processed, {} joblinks scraped'.format(
                 query_loc, count+1, scrape_count))
 
