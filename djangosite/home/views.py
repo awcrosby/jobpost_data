@@ -10,6 +10,7 @@ from djangosite.celery import app
 from django_celery_results.models import TaskResult
 from django_celery_beat.models import PeriodicTask
 import pymongo
+import time
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -18,8 +19,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 client = pymongo.MongoClient('localhost', 27017)
 db = client.jobpost_data
 db.posts.create_index('url', unique=True)
-db.posts.create_index([('query_loc', 1), ('title', pymongo.TEXT),
-                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
+# db.posts.create_index([('posted', 1), ('title', pymongo.TEXT),
+#                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
 # db.posts.index_information()
 # db.posts.drop_index('query_loc_1_title_text_skills_text')
 # import pdb; pdb.set_trace()  #### DEBUG
@@ -105,22 +106,23 @@ def index(request):
         return render(request, 'home/index.html', context)
 
     # QUERY DATABASE VIA USER KEYWORDS
+    start = time.time()
     query = form.cleaned_data['query']
     query_loc = form.cleaned_data['location'].query.lower()
-    result_docs = db_text_search(query, query_loc)
-    loc_count = db.posts.find({'query_loc': query_loc}).count()
+    result_docs, total_count = db_text_search(query, query_loc)
+    print('query1 TIME: {:.3f}s'.format(time.time()-start))
     date_counts = db_query_by_date(query, query_loc)
+    print('query1+2 TIME: {:.3f}s'.format(time.time()-start))
 
     # TEXT PROCESSING
     word_counts = get_word_count(result_docs)
     word_counts = [tup for tup in word_counts if tup[0] != query.lower()]
     words = [{'text': tup[0], 'size': tup[1]} for tup in word_counts]
+    print('querys+get_word_count() TIME: {:.3f}s'.format(time.time()-start))
 
     # PREPARE DATA FOR TEMPLATE
-    intro = ('"{}" matches {}/{}'.format(query, len(result_docs), loc_count) +
-             ' job posts in last month. Highest occurring skills:')
     context = {'query': query, 'res_count': len(result_docs),
-               'all_posts': loc_count, 'form': form, 'words': words,
+               'all_posts': total_count, 'form': form, 'words': words,
                'word_counts': word_counts, 'date_counts': date_counts}
     return render(request, 'home/index.html', context)
 

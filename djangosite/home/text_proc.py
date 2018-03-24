@@ -24,9 +24,19 @@ stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
 
 def db_text_search(query, query_loc):
     """Return mongo docs via text search for given location"""
-    cur = db.posts.find({'query_loc': query_loc,
-                         '$text': {'$search': query}})
-    return [doc for doc in cur]
+    #cur = db.posts.find({'query_loc': query_loc,
+    #                     '$text': {'$search': query}})
+
+    cur = db.posts.find({
+        'posted': {'$gte': datetime.utcnow() - timedelta(days=30)},
+        '$text': {'$search': query}
+    })
+    result_docs = [doc for doc in cur] 
+    total_count =  db.posts.find({
+        'posted': {'$gte': datetime.utcnow() - timedelta(days=30)}
+    }).count()
+
+    return (result_docs, total_count)
 
 
 def db_query_by_date(query, query_loc):
@@ -37,15 +47,20 @@ def db_query_by_date(query, query_loc):
     """
     n = 3
     count_by_date = []
-    for daygroup in range(1, 9):
-        c = db.posts.find({
-            'query_loc': query_loc,
-            '$text': {'$search': query},
-            'posted': {
-                '$lt': datetime.utcnow() - timedelta(days=n*(daygroup-1)),
-                '$gte': datetime.utcnow() - timedelta(days=n*daygroup)}
-        })
-        count_by_date.append(c.count())
+    locs = []
+    for i in range(6):
+        locs.append(['new york, ny', 'seattle, wa', 'dallas, tx', 'chicago, il', 'san jose, ca'])
+    print('len(locs):', len(locs))
+    for loc in locs:
+        for daygroup in range(1, 9):
+            c = db.posts.find({
+                'query_loc': loc,
+                '$text': {'$search': query},
+                'posted': {
+                    '$lt': datetime.utcnow() - timedelta(days=n*(daygroup-1)),
+                    '$gte': datetime.utcnow() - timedelta(days=n*daygroup)}
+            })
+            count_by_date.append(c.count())
 
     return count_by_date
 
@@ -63,7 +78,7 @@ def get_word_count(mongo_docs):
         if time.time()-start > 30:
             print('timeout while scanning mongo docs')
             return 'timeout'
-    print('parse {}, TIME: {:.3f}s'.format(len(allwords), time.time()-start))
+    #print('parse {}, TIME: {:.3f}s'.format(len(allwords), time.time()-start))
 
     allwords = [w.lower() for w in allwords]
     allwords = [w for w in allwords if w not in stops]
@@ -74,7 +89,7 @@ def get_word_count(mongo_docs):
     allwords = [w for w in allwords if w in whitelist]
 
     count = collections.Counter(allwords)
-    print('after stop/skills/count, TIME: {:.3f}s'.format(time.time()-start))
+    #print('counter TIME: {:.3f}s'.format(time.time()-start))
     return count.most_common(60)
 
 
