@@ -8,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 import urllib
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 import traceback
 from time import sleep
@@ -139,7 +139,7 @@ def scrape_dice(self, query, query_loc, param_id=None):
             text = soup.find('li', 'posted').text.strip().strip('.,')
             deltype = text.split(' ')[-2]
             if deltype == 'moments':
-                job['posted'] = datetime.utcnow()
+                posted = datetime.utcnow()
             else:
                 N = int(text.split(' ')[1])
                 deltype = deltype if deltype[-1] == 's' else deltype + 's'
@@ -147,7 +147,9 @@ def scrape_dice(self, query, query_loc, param_id=None):
                     deltype = 'days'
                     N = N*30
                 delta = eval("timedelta("+deltype+"=N)")
-                job['posted'] = datetime.utcnow() - delta
+                posted = datetime.utcnow() - delta
+            job['posted'] = posted
+            job['posted_week'] = posted.isocalendar()[1]
 
             # get skills
             div = soup.find('div', {'class': 'iconsiblings',

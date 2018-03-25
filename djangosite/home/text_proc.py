@@ -27,16 +27,33 @@ def db_text_search(query, query_loc):
     #cur = db.posts.find({'query_loc': query_loc,
     #                     '$text': {'$search': query}})
 
+    ## speed: 29, 43/hang, 36 for py, j, js... with 8w being 94k
+    #total_count =  db.posts.find({
+    #    'posted': {'$gte': datetime.utcnow() - timedelta(weeks=8)}
+    #}).count()
+    #cur = db.posts.find({
+    #    'posted': {'$gte': datetime.utcnow() - timedelta(weeks=8)},
+    #    '$text': {'$search': query}
+    #})
+    total_count =  db.posts.find({
+        'posted_week': {'$in': [12, 11, 10, 9, 8, 7]}
+    }).count()
     cur = db.posts.find({
-        'posted': {'$gte': datetime.utcnow() - timedelta(days=30)},
+        'posted_week': {'$in': [12, 11, 10, 9, 8, 7]},
         '$text': {'$search': query}
     })
+    #cur = db.posts.find({
+    #    'posted_week': 12,
+    #    '$text': {'$search': query}
+    #})
     result_docs = [doc for doc in cur] 
-    total_count =  db.posts.find({
-        'posted': {'$gte': datetime.utcnow() - timedelta(days=30)}
-    }).count()
 
-    return (result_docs, total_count)
+    # get count of query_loc by week
+    locs_counter = collections.Counter()
+    for doc in result_docs:
+        locs_counter[(doc['query_loc'], doc['posted_week'])] += 1
+
+    return (result_docs, total_count, locs_counter)
 
 
 def db_query_by_date(query, query_loc):
@@ -54,12 +71,17 @@ def db_query_by_date(query, query_loc):
     for loc in locs:
         for daygroup in range(1, 9):
             c = db.posts.find({
+                'posted_week': 12,
                 'query_loc': loc,
-                '$text': {'$search': query},
-                'posted': {
-                    '$lt': datetime.utcnow() - timedelta(days=n*(daygroup-1)),
-                    '$gte': datetime.utcnow() - timedelta(days=n*daygroup)}
+                '$text': {'$search': query}
             })
+            #c = db.posts.find({
+            #    'query_loc': loc,
+            #    '$text': {'$search': query},
+            #    'posted': {
+            #        '$lt': datetime.utcnow() - timedelta(days=n*(daygroup-1)),
+            #        '$gte': datetime.utcnow() - timedelta(days=n*daygroup)}
+            #})
             count_by_date.append(c.count())
 
     return count_by_date

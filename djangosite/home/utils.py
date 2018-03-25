@@ -71,7 +71,7 @@ def reset_scraper_schedule(request):
     if request.is_ajax():  
         # set/reset Crontab with many entries
         CrontabSchedule.objects.all().delete()
-        days_to_scrape = [1, 4]
+        days_to_scrape = [1, 3, 5]
         for day in days_to_scrape:
             for hour in range(1,24):
                 CrontabSchedule.objects.create(
