@@ -114,8 +114,36 @@ def index(request):
     query_loc = form.cleaned_data['location'].query.lower()
     result_docs, total_count, date_counts = db_text_search(query, query_loc)
     print('query TIME: {:.3f}s'.format(time.time()-start))
-    #date_counts = db_query_by_date(query, query_loc)
-    #print('query1+2 TIME: {:.3f}s'.format(time.time()-start))
+
+    query_locs = ['raleigh, nc', 'chicago, il', 'dallas, tx']
+    loc_posts = []
+    for loc in query_locs:
+        loc_posts.append({'loc': loc, 'posts': []})
+
+    # fill loc_posts with values for each week found
+    date_counts = dict(date_counts)
+    for key, value in date_counts.items():
+        loc = key[0]
+        week = key[1]
+        posts = value
+        if loc not in query_locs:
+            continue
+        loc_post = list(filter(lambda loc_post: loc_post['loc'] == loc, loc_posts))[0]
+        loc_post[week] = posts
+
+    # format loc_posts so template graph can display
+    for loc_post in loc_posts:
+        for week in range(7, 13):
+            post_count = loc_post.get(week, 0)
+            loc_post['posts'].append(post_count)
+
+    print('loc_post ex:', loc_post)
+
+    date_counts = [
+        {'loc': 'raleigh, nc', 'posts': [1,2,1,2,4,2]},
+        {'loc': 'chicago, il', 'posts': [4,3,3,2,4,4]},
+        {'loc': 'dallas, tx', 'posts': [5,4,3,6,4,5]}
+    ]
 
     # TEXT PROCESSING
     word_counts = get_word_count(result_docs)
@@ -126,6 +154,6 @@ def index(request):
     # PREPARE DATA FOR TEMPLATE
     context = {'query': query, 'res_count': len(result_docs),
                'all_posts': total_count, 'form': form, 'words': words,
-               'word_counts': word_counts, 'date_counts': date_counts}
+               'word_counts': word_counts, 'loc_posts': loc_posts}
     return render(request, 'home/index.html', context)
 

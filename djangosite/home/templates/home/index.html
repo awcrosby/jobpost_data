@@ -16,9 +16,10 @@
     <div id='wordcloud'></div>
     <!-- <div>{{words}}</div> -->
 
-    <h4>Jobpost results by city</h4>
-    <div id="loc_post_graph">loc_post_graph</div>
-    <div>date_counts: {{date_counts}}</div>
+    <h4>For "{{query}}" query, jobpost results by city</h4>
+
+    <section id="graph"><canvas id="myChart"></canvas></section>
+    <div>loc_posts: {{loc_posts}}</div>
   {% endif %}
 
 {% endblock %}
@@ -28,11 +29,55 @@
   <!-- https://github.com/wvengen/d3-wordcloud/blob/master/README.md -->
   <script>
     d3.wordcloud()
-     .size([800, 400])
+     .size([600, 300])
      .selector('#wordcloud')
      .words({{words|safe}})
      .scale('sqrt')
      .spiral('archimedean')
      .start();
+
+    var loc_posts = {{loc_posts|safe}}
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['6 weeks ago', '5 weeks ago', '4 weeks ago', '3 weeks ago', '2 weeks ago', '1 week ago'],
+        datasets: [
+          {
+            fill: false,
+            backgroundColor: 'rgba(123, 104, 238, 0.7)',
+            borderColor: 'rgba(123, 104, 238, 0.7)',
+            label: loc_posts[0]['loc'],
+            data: loc_posts[0]['posts'],
+            borderWidth: 1
+          },
+          {
+            fill: false,
+            backgroundColor: 'rgba(0, 255, 0, 0.7)',
+            borderColor: 'rgba(0, 255, 0, 0.7)',
+            label: loc_posts[1]['loc'],
+            data: loc_posts[1]['posts'],
+            borderWidth: 1
+          },
+          {
+            fill: false,
+            backgroundColor: 'rgba(220, 20, 60, 0.7)',
+            borderColor: 'rgba(220, 20, 60, 0.7)',
+            label: loc_posts[2]['loc'],
+            data: loc_posts[2]['posts'],
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: false
+            }
+          }]
+        }
+      }
+    });
   </script>
 {% endblock %}

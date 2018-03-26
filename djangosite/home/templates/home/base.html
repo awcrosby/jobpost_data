@@ -8,18 +8,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
+  <title>Jobposts + Tasks</title>
+
+  <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}" />
+
   <!-- Jquery non-slim needed for Manual Task polling -->
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"
           integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
           crossorigin="anonymous"></script>
 
+  <!-- Wordcloud -->
   <script src="{% static 'd3/d3.js' %}"></script>
   <script src="{% static 'd3/d3.layout.cloud.js' %}"></script>
   <script src="{% static 'd3/d3.wordcloud.js' %}"></script>
 
-  <title>Jobposts + Tasks</title>
-
-  <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}" />
+  <!-- Graphing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
 
   <!-- CSS and JS for Bootstrap -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
