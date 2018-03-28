@@ -53,6 +53,55 @@ def db_text_search(query, query_loc):
     for doc in result_docs:
         locs_counter[(doc['query_loc'], doc['posted_week'])] += 1
 
+    # find the relevant docs and split the descriptions on whitespace
+    pipeline = [
+        {'$match': {'$text': {'$search': 'python'}}},
+
+        {'$project' : {
+            '_id': 0,
+            'postid': 1,
+            'words': {'$split': ["$description", " "]}}
+        },
+    ]
+
+    # make each list into separate docs
+    pipeline.append(
+        {'$unwind': '$words' },
+    )
+
+    # split on special chars we don't want
+    pipeline.extend(get_split('!'))
+    pipeline.extend(get_split('.'))
+    pipeline.extend(get_split(','))
+
+
+    # group by each word and the unique postids for each
+    pipeline.append(
+        {
+           '$group': {
+               '_id': '$words',
+               'postids': {'$addToSet': "$postid" }
+             }
+        }
+    )
+
+    # count the postids
+    pipeline.append(
+        {
+            '$project': {
+                '_id': 1,
+                'cnt': {'$size': '$postids'}
+            }
+        },
+    )
+
+    # sort by the counts
+    pipeline.append(
+        {'$sort': { 'cnt': -1 } }
+    )
+    cursor = posts.aggregate(pipeline)
+    res = list(cursor)
+    print('###################################### 4')
     return (result_docs, total_count, locs_counter)
 
 
