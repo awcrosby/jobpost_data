@@ -19,7 +19,7 @@
     <h4>For "{{query}}" query, jobpost results by city</h4>
 
     <section id="graph"><canvas id="myChart"></canvas></section>
-    <div>loc_posts: {{loc_posts}}</div>
+    <div>loc_graph_data: {{loc_graph_data}}</div>
   {% endif %}
 
 {% endblock %}
@@ -36,7 +36,7 @@
      .spiral('archimedean')
      .start();
 
-    var loc_posts = {{loc_posts|safe}}
+    var loc_posts = {{loc_graph_data|safe}}
     var ctx = document.getElementById('myChart').getContext('2d');
     var myChart = new Chart(ctx, {
       type: 'line',

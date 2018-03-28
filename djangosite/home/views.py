@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from .forms import UserQueryForm, ScraperForm
 from .models import ScraperParams
-from .text_proc import get_word_count, db_text_search, db_query_by_date
+from .text_proc import get_word_count, db_text_search, get_loc_week_counts
 from .utils import get_display_results
 from djangosite.celery import app
 from django_celery_results.models import TaskResult
@@ -22,8 +22,8 @@ db.posts.create_index('url', unique=True)
 # db.posts.create_index([('posted_week', 1), ('query_loc', 1)])
 # db.posts.create_index([('posted_week', 1), ('title', pymongo.TEXT),
 #                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
-db.posts.create_index([('title', pymongo.TEXT),
-                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
+#db.posts.create_index([('title', pymongo.TEXT),
+#                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
 # db.posts.index_information()
 # db.posts.drop_index('query_loc_1_title_text_skills_text')
 # import pdb; pdb.set_trace()  #### DEBUG
@@ -111,8 +111,7 @@ def index(request):
     # QUERY DATABASE VIA USER KEYWORDS
     start = time.time()
     query = form.cleaned_data['query']
-    query_loc = form.cleaned_data['location'].query.lower()
-    result_docs, total_count, date_counts = db_text_search(query, query_loc)
+    result_docs, total_count = db_text_search(query)
     print('query TIME: {:.3f}s'.format(time.time()-start))
 
     query_locs = ['raleigh, nc', 'chicago, il', 'dallas, tx']
@@ -120,40 +119,20 @@ def index(request):
     for loc in query_locs:
         loc_posts.append({'loc': loc, 'posts': []})
 
-    # fill loc_posts with values for each week found
-    date_counts = dict(date_counts)
-    for key, value in date_counts.items():
-        loc = key[0]
-        week = key[1]
-        posts = value
-        if loc not in query_locs:
-            continue
-        loc_post = list(filter(lambda loc_post: loc_post['loc'] == loc, loc_posts))[0]
-        loc_post[week] = posts
-
-    # format loc_posts so template graph can display
-    for loc_post in loc_posts:
-        for week in range(7, 13):
-            post_count = loc_post.get(week, 0)
-            loc_post['posts'].append(post_count)
-
-    print('loc_post ex:', loc_post)
-
-    date_counts = [
-        {'loc': 'raleigh, nc', 'posts': [1,2,1,2,4,2]},
-        {'loc': 'chicago, il', 'posts': [4,3,3,2,4,4]},
-        {'loc': 'dallas, tx', 'posts': [5,4,3,6,4,5]}
-    ]
-
     # TEXT PROCESSING
+    start = time.time()
     word_counts = get_word_count(result_docs)
     word_counts = [tup for tup in word_counts if tup[0] != query.lower()]
     words = [{'text': tup[0], 'size': tup[1]} for tup in word_counts]
-    print('query+get_word_count() TIME: {:.3f}s'.format(time.time()-start))
+    print('get_word_count() TIME: {:.3f}s'.format(time.time()-start))
+
+    start = time.time()
+    loc_graph_data = get_loc_week_counts(query)
+    print('get_loc_week_counts() TIME: {:.3f}s'.format(time.time()-start))
 
     # PREPARE DATA FOR TEMPLATE
     context = {'query': query, 'res_count': len(result_docs),
                'all_posts': total_count, 'form': form, 'words': words,
-               'word_counts': word_counts, 'loc_posts': loc_posts}
+               'word_counts': word_counts, 'loc_graph_data': loc_graph_data}
     return render(request, 'home/index.html', context)
 

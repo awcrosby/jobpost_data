@@ -4,6 +4,7 @@ import time
 import nltk
 import re
 from datetime import datetime, timedelta
+from .models import QueryLoc
 # nltk.download('stopwords')
 from nltk.corpus import stopwords
 
@@ -22,118 +23,72 @@ stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
               'resources', 'protocols', 'frameworks', 'click'])
 
 
-def db_text_search(query, query_loc):
-    """Return mongo docs via text search for given location"""
-    #cur = db.posts.find({'query_loc': query_loc,
-    #                     '$text': {'$search': query}})
-
-    ## speed: 29, 43/hang, 36 for py, j, js... with 8w being 94k
-    #total_count =  db.posts.find({
-    #    'posted': {'$gte': datetime.utcnow() - timedelta(weeks=8)}
-    #}).count()
-    #cur = db.posts.find({
-    #    'posted': {'$gte': datetime.utcnow() - timedelta(weeks=8)},
-    #    '$text': {'$search': query}
-    #})
+def db_text_search(query, total_weeks=6):
+    """Return mongo docs via text search for given number of weeks """
+    list_of_weeks = get_list_of_weeks(total_weeks)
     total_count =  db.posts.find({
-        'posted_week': {'$in': [12, 11, 10, 9, 8, 7]}
+        'posted_week': {'$in': list_of_weeks}
     }).count()
+
     cur = db.posts.find({
-        'posted_week': {'$in': [12, 11, 10, 9, 8, 7]},
+        'posted_week': {'$in': list_of_weeks},
         '$text': {'$search': query}
     })
-    #cur = db.posts.find({
-    #    'posted_week': 12,
-    #    '$text': {'$search': query}
-    #})
-    result_docs = [doc for doc in cur] 
 
-    # get count of query_loc by week
-    locs_counter = collections.Counter()
-    for doc in result_docs:
-        locs_counter[(doc['query_loc'], doc['posted_week'])] += 1
+    result_docs = list(cur)
+    return (result_docs, total_count)
 
-    # find the relevant docs and split the descriptions on whitespace
+
+def get_loc_week_counts(query, total_weeks=6):
+    """Gets counts of posts by location and week
+
+    Return:
+        List of dicts with 'loc' string and 'posts' list of plot values
+    """
+    # find the docs based on query
+    list_of_weeks = get_list_of_weeks(total_weeks)
     pipeline = [
-        {'$match': {'$text': {'$search': 'python'}}},
-
-        {'$project' : {
-            '_id': 0,
-            'postid': 1,
-            'words': {'$split': ["$description", " "]}}
+        {'$match': {
+            'posted_week': {'$in': list_of_weeks},
+            '$text': {'$search': query}}
         },
+        {'$project': {
+            '_id': 0,
+            'query_loc': 1,
+            'posted_week': 1}
+        }
     ]
 
-    # make each list into separate docs
-    pipeline.append(
-        {'$unwind': '$words' },
-    )
-
-    # split on special chars we don't want
-    pipeline.extend(get_split('!'))
-    pipeline.extend(get_split('.'))
-    pipeline.extend(get_split(','))
-
-
-    # group by each word and the unique postids for each
+    # count num of posts by query_loc + week number
     pipeline.append(
         {
-           '$group': {
-               '_id': '$words',
-               'postids': {'$addToSet': "$postid" }
-             }
+            '$group': {
+                '_id': {'loc': '$query_loc', 'week_num': '$posted_week'},
+                'count': {'$sum': 1}
+            }
         }
     )
+    cursor = db.posts.aggregate(pipeline)
 
-    # count the postids
-    pipeline.append(
-        {
-            '$project': {
-                '_id': 1,
-                'cnt': {'$size': '$postids'}
-            }
-        },
-    )
-
-    # sort by the counts
-    pipeline.append(
-        {'$sort': { 'cnt': -1 } }
-    )
-    cursor = posts.aggregate(pipeline)
-    res = list(cursor)
-    print('###################################### 4')
-    return (result_docs, total_count, locs_counter)
-
-
-def db_query_by_date(query, query_loc):
-    """Query mongodb for count of matching docs by groups of n days
-    
-    Return:
-        List: count of docs in last n*1 days, last n*2 days, etc.
-    """
-    n = 3
-    count_by_date = []
-    locs = []
-    for i in range(6):
-        locs.append(['new york, ny', 'seattle, wa', 'dallas, tx', 'chicago, il', 'san jose, ca'])
-    print('len(locs):', len(locs))
+    # change data format so graph can display it
+    locs = [l.lower() for l in QueryLoc.objects.values_list('query', flat=True)]
+    loc_posts = []
     for loc in locs:
-        for daygroup in range(1, 9):
-            c = db.posts.find({
-                'posted_week': 12,
-                'query_loc': loc,
-                '$text': {'$search': query}
-            })
-            #c = db.posts.find({
-            #    'query_loc': loc,
-            #    '$text': {'$search': query},
-            #    'posted': {
-            #        '$lt': datetime.utcnow() - timedelta(days=n*(daygroup-1)),
-            #        '$gte': datetime.utcnow() - timedelta(days=n*daygroup)}
-            #})
-            count_by_date.append(c.count())
+        loc_posts.append({'loc': loc, 'posts': []})
 
-    return count_by_date
+    for d in cursor:
+        loc = d['_id']['loc']
+        week = d['_id']['week_num']
+        posts = d['count']
+        loc_post = list(filter(lambda loc_post: loc_post['loc'] == loc, loc_posts))[0]
+        loc_post[week] = posts
+
+    for loc_post in loc_posts:
+        for week in range(7, 13):
+            post_count = loc_post.get(week, 0)
+            loc_post['posts'].append(post_count)
+
+    return loc_posts
 
 
 def get_word_count(mongo_docs):
@@ -162,6 +117,21 @@ def get_word_count(mongo_docs):
     count = collections.Counter(allwords)
     #print('counter TIME: {:.3f}s'.format(time.time()-start))
     return count.most_common(60)
+
+
+def get_list_of_weeks(total_weeks=6):
+    """Helper func, returns list of previous week numbers from today
+
+    Assumes no more than 11 months of data in the database
+    """
+    current_week = datetime.utcnow().isocalendar()[1]
+    list_of_weeks = []
+    for i in range(current_week-1, current_week-1-total_weeks, -1):
+        if i > 0:
+            list_of_weeks.append(i)
+        else:
+            list_of_weeks.append(i+52)
+    return list_of_weeks
 
 
 # def get_top_employers():

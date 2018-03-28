@@ -59,8 +59,7 @@ def reload_locations(request):
 
 def reset_scraper_schedule(request):
     """Sets/resets many Crontab entries at random times for specified days.
-    Sets/resets a PeriodicTask for each QueryLoc + specified day combination,
-    with a random Crontab.
+    Sets/resets a PeriodicTask for each QueryLoc with a random Crontab.
 
     Function callable via http / ajax request.
 
@@ -71,25 +70,23 @@ def reset_scraper_schedule(request):
     if request.is_ajax():  
         # set/reset Crontab with many entries
         CrontabSchedule.objects.all().delete()
-        days_to_scrape = [1, 3, 5]
-        for day in days_to_scrape:
+        for i in range(3):
             for hour in range(1,24):
                 CrontabSchedule.objects.create(
                     minute=randint(1,59),
                     hour=hour,
-                    day_of_week=day
+                    day_of_week='1,3,5'
                 )
 
         # set/reset PeriodicTask based on QueryLoc, days_to_scrape, and random Crontab
         PeriodicTask.objects.all().delete()
         for loc in QueryLoc.objects.all():
-            for day in days_to_scrape:
-                PeriodicTask.objects.create(
-                    crontab=CrontabSchedule.objects.filter(day_of_week=day).order_by('?').first(),
-                    name='scrape dice day#{} for: {}'.format(day, loc.query),
-                    task='djangosite.home.tasks.scrape_dice',
-                    kwargs=json.dumps({'query': '', 'query_loc': loc.query})
-                )
+            PeriodicTask.objects.create(
+                crontab=CrontabSchedule.objects.all().order_by('?').first(),
+                name='auto scrape dice in: {}'.format(loc.query),
+                task='djangosite.home.tasks.scrape_dice',
+                kwargs=json.dumps({'query': '', 'query_loc': loc.query})
+            )
         data = {'response': 'auto scraper crontabs and periodic tasks successfully reset'}
     json_data = json.dumps(data)
     return HttpResponse(json_data, content_type='application/json')
