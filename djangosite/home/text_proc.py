@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from .models import QueryLoc
 # nltk.download('stopwords')
 from nltk.corpus import stopwords
+from operator import itemgetter
 
 client = pymongo.MongoClient('localhost', 27017)
 db = client.jobpost_data
@@ -25,18 +26,35 @@ stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
 
 def db_text_search(query, total_weeks=6):
     """Return mongo docs via text search for given number of weeks """
+    start = time.time()
     list_of_weeks = get_list_of_weeks(total_weeks)
+    print(list_of_weeks)
     total_count =  db.posts.find({
         'posted_week': {'$in': list_of_weeks}
     }).count()
+    print('count all in weeks TIME: {:.3f}s'.format(time.time()-start))
 
-    cur = db.posts.find({
+    start = time.time()
+    cur = db.posts.aggregate([
+        {'$match': {
+            'posted_week': {'$in': list_of_weeks},
+            '$text': {'$search': query}}
+        },
+        {'$sample': {'size': 1000}}
+    ])
+    docs = list(cur)
+    print('text search list() TIME: {:.3f}s'.format(time.time()-start))
+
+    start = time.time()
+    match_count = db.posts.find({
         'posted_week': {'$in': list_of_weeks},
         '$text': {'$search': query}
-    })
+    }).count()
+    print('text search count() TIME: {:.3f}s'.format(time.time()-start))
 
-    result_docs = list(cur)
-    return (result_docs, total_count)
+    return {'match_count': match_count,
+            'total_count': total_count,
+            'docs': docs}
 
 
 def get_loc_week_counts(query, total_weeks=6):
@@ -84,9 +102,12 @@ def get_loc_week_counts(query, total_weeks=6):
         loc_post[week] = posts
 
     for loc_post in loc_posts:
-        for week in range(7, 13):
+        for week in range(min(list_of_weeks), max(list_of_weeks)+1):
             post_count = loc_post.get(week, 0)
             loc_post['posts'].append(post_count)
+        loc_post['total'] = sum(loc_post['posts'])
+
+    loc_posts = sorted(loc_posts, key=itemgetter('total'), reverse=True)
 
     return loc_posts
 
@@ -116,7 +137,7 @@ def get_word_count(mongo_docs):
 
     count = collections.Counter(allwords)
     #print('counter TIME: {:.3f}s'.format(time.time()-start))
-    return count.most_common(60)
+    return count.most_common(80)
 
 
 def get_list_of_weeks(total_weeks=6):

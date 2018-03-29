@@ -11,15 +11,14 @@
   </form>
 
   {% if query %}
-    <h5>"{{query}}" matched {{res_count}}/{{all_posts}} jobposts in last 30 days across the US</h5>
-    <h5>Highest occuring skills in the results:</h5>
+    <h5>"{{query}}" matched {{res_count}}/{{all_posts}} jobposts in the last 6 weeks across the US. Highest occuring skills in the results:</h5>
     <div id='wordcloud'></div>
     <!-- <div>{{words}}</div> -->
 
-    <h4>For "{{query}}" query, jobpost results by city</h4>
+    <h4>"{{query}}" jobposts counts, top cities shown first (click legend to show/hide):</h4>
 
     <section id="graph"><canvas id="myChart"></canvas></section>
-    <div>loc_graph_data: {{loc_graph_data}}</div>
+    <!-- <div>loc_graph_data: {{loc_graph_data}}</div> -->
   {% endif %}
 
 {% endblock %}
@@ -38,40 +37,66 @@
 
     var loc_posts = {{loc_graph_data|safe}}
     var ctx = document.getElementById('myChart').getContext('2d');
+    var mydatasets = new Array();
+
+    colors = [
+        '#cb181d', //r
+        '#238443', //g
+        '#6a51a3', //p
+        '#d94801', //o
+        '#2b8cbe', //b
+        '#ef3b2c', //r
+        '#41ab5d', //g
+        '#807dba', //p
+        '#f16913', //o
+        '#4eb3d3', //b
+        '#fb6a4a', //r
+        '#78c679', //g 
+        '#9e9ac8', //p
+        '#fd8d3c', //o
+        '#7bccc4', //b
+        '#fc9272', //r
+        '#addd8e', //g
+        '#bcbddc', //p
+        '#fdae6b', //o
+        '#a8ddb5', //b
+        '#fcbba1', //r
+        '#d9f0a3', //g
+        '#dadaeb', //p
+        '#fdd0a2', //o
+        '#ccebc5', //b
+    ];
+
+    for (i=0; i < 25; i++) {
+        dataset = {
+            fill: false,
+            backgroundColor: colors[i] ,
+            borderColor: colors[i],
+            borderWidth: '0.7',
+            label: loc_posts[i]['loc'],
+            data: loc_posts[i]['posts'],
+            borderWidth: 1
+        };
+        if (i >= 5) {
+            dataset.hidden = true;
+        }
+        mydatasets.push(dataset);
+    };
+
     var myChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: ['6 weeks ago', '5 weeks ago', '4 weeks ago', '3 weeks ago', '2 weeks ago', '1 week ago'],
-        datasets: [
-          {
-            fill: false,
-            backgroundColor: 'rgba(123, 104, 238, 0.7)',
-            borderColor: 'rgba(123, 104, 238, 0.7)',
-            label: loc_posts[0]['loc'],
-            data: loc_posts[0]['posts'],
-            borderWidth: 1
-          },
-          {
-            fill: false,
-            backgroundColor: 'rgba(0, 255, 0, 0.7)',
-            borderColor: 'rgba(0, 255, 0, 0.7)',
-            label: loc_posts[1]['loc'],
-            data: loc_posts[1]['posts'],
-            borderWidth: 1
-          },
-          {
-            fill: false,
-            backgroundColor: 'rgba(220, 20, 60, 0.7)',
-            borderColor: 'rgba(220, 20, 60, 0.7)',
-            label: loc_posts[2]['loc'],
-            data: loc_posts[2]['posts'],
-            borderWidth: 1
-          }
-        ]
+        datasets: mydatasets
       },
       options: {
+        maintainAspectRatio: false,
         scales: {
           yAxes: [{
+            scaleLabel: {
+              display: true,
+              labelString: 'Jobpost counts'
+            },
             ticks: {
               beginAtZero: false
             }

@@ -111,8 +111,7 @@ def index(request):
     # QUERY DATABASE VIA USER KEYWORDS
     start = time.time()
     query = form.cleaned_data['query']
-    result_docs, total_count = db_text_search(query)
-    print('query TIME: {:.3f}s'.format(time.time()-start))
+    data = db_text_search(query)
 
     query_locs = ['raleigh, nc', 'chicago, il', 'dallas, tx']
     loc_posts = []
@@ -121,7 +120,7 @@ def index(request):
 
     # TEXT PROCESSING
     start = time.time()
-    word_counts = get_word_count(result_docs)
+    word_counts = get_word_count(data['docs'])
     word_counts = [tup for tup in word_counts if tup[0] != query.lower()]
     words = [{'text': tup[0], 'size': tup[1]} for tup in word_counts]
     print('get_word_count() TIME: {:.3f}s'.format(time.time()-start))
@@ -131,8 +130,8 @@ def index(request):
     print('get_loc_week_counts() TIME: {:.3f}s'.format(time.time()-start))
 
     # PREPARE DATA FOR TEMPLATE
-    context = {'query': query, 'res_count': len(result_docs),
-               'all_posts': total_count, 'form': form, 'words': words,
+    context = {'query': query, 'res_count': data['match_count'],
+               'all_posts': data['total_count'], 'form': form, 'words': words,
                'word_counts': word_counts, 'loc_graph_data': loc_graph_data}
     return render(request, 'home/index.html', context)
 
