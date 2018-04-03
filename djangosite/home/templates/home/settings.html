@@ -1,0 +1,63 @@
+{% extends 'home/base.html' %}
+{% block content %}
+
+{% load my_filters %}
+
+<section class="all_tasks">
+  <h3>Task to Update Skills from Stackoverflow tags</h3>
+  <button id="update_skills">Update Skills</button>
+  <p id="skills_msg"></p>
+</section>
+
+<section class="all_tasks">
+  <h3>Clear and Reload Query Locations from File</h3>
+  <p class="warn">Warning: this will also delete all Manual Tasks, since they rely on locations</p>
+  <button id="reload_locations">Reload Locations</button>
+  <p id="loc_msg"></p>
+</section>
+
+<section class="all_tasks">
+  <h3>Reset Auto Scraper Crontabs and Scheduled Tasks</h3>
+  <button id="reset_scraper_schedule">Reset Auto Scraper</button>
+  <p id="scraper_msg"></p>
+</section>
+
+{% endblock %}
+
+
+{% block javascript %}
+<script>
+  // start skills update task
+  $('#update_skills').click(function() {
+    $(this).attr('disabled', true)
+    $.ajax({
+      url: '{% url "skills_update" %}',
+      success: function(data) {
+        $('#skills_msg').html(data.response);
+      }
+    });
+  });
+
+  // reload locations
+  $('#reload_locations').click(function() {
+    $(this).attr('disabled', true)
+    $.ajax({
+      url: '{% url "reload_locations" %}',
+      success: function(data) {
+        $('#loc_msg').html(data.response);
+      }
+    });
+  });
+
+  // reset auto scraper
+  $('#reset_scraper_schedule').click(function() {
+    $(this).attr('disabled', true)
+    $.ajax({
+      url: '{% url "reset_scraper_schedule" %}',
+      success: function(data) {
+        $('#scraper_msg').html(data.response);
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -32,22 +32,16 @@
 </section>
 
 <section class="all_tasks">
-  <h3>Manual Tasks</h3>
+  <h3><a href="/manual_tasks">Manual Tasks</a></h3>
   <p>Add entry to <a href="/admin/home/scraperparams/">Scraper Params table</a> for new manual task</p>
   {% if scraper_list %}
   <table>
     <tr>
-      <th></th>
       <th>Scraper Parameters</th>
       <th>Results</th>
     </tr>
     {% for scraper, status in scraper_list %}
       <tr>
-        <td>
-          <button id="button-{{scraper.id}}"
-                  app_scraper_id="{{scraper.id}}"
-                  class="js-scrape">Start</button>
-        </td>
         <td>{{scraper}}</td>
         <td><div id="res-{{scraper.id}}">{{status.display_result}}</div></td>
       </tr>
@@ -76,25 +70,6 @@
     </tr>{% endfor %}
     
   </table>
-</section>
-
-<section class="all_tasks">
-  <h3>Task to Update Skills from Stackoverflow tags</h3>
-  <button id="update_skills">Update Skills</button>
-  <p id="skills_msg"></p>
-</section>
-
-<section class="all_tasks">
-  <h3>Clear and Reload Query Locations from File</h3>
-  <p class="warn">Warning: this will also delete all Manual Tasks, since they rely on locations</p>
-  <button id="reload_locations">Reload Locations</button>
-  <p id="loc_msg"></p>
-</section>
-
-<section class="all_tasks">
-  <h3>Reset Auto Scraper Crontabs and Scheduled Tasks</h3>
-  <button id="reset_scraper_schedule">Reset Auto Scraper</button>
-  <p id="scraper_msg"></p>
 </section>
 
 {% endblock %}
@@ -142,39 +117,5 @@
   };
   setInterval(check_each_status, 2000);
   $( document ).ready(check_each_status);
-
-
-  // start skills update task
-  $('#update_skills').click(function() {
-    $(this).attr('disabled', true)
-    $.ajax({
-      url: '{% url "skills_update" %}',
-      success: function(data) {
-        $('#skills_msg').html(data.response);
-      }
-    });
-  });
-
-  // reload locations
-  $('#reload_locations').click(function() {
-    $(this).attr('disabled', true)
-    $.ajax({
-      url: '{% url "reload_locations" %}',
-      success: function(data) {
-        $('#loc_msg').html(data.response);
-      }
-    });
-  });
-
-  // reset auto scraper
-  $('#reset_scraper_schedule').click(function() {
-    $(this).attr('disabled', true)
-    $.ajax({
-      url: '{% url "reset_scraper_schedule" %}',
-      success: function(data) {
-        $('#scraper_msg').html(data.response);
-      }
-    });
-  });
 </script>
 {% endblock %}

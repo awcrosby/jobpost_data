@@ -1,6 +1,6 @@
 # jobpost_data
 
-Framework to run manual tasks (click to start), and automated tasks (scheduled) configurable via the database. Applied to task of gathering job postings... Jobpost user interface displays skills found in user query, and ____
+Framework to run manual tasks (click to start), and automated tasks (scheduled) configurable via the database. Applied to task of gathering job postings... Jobpost user interface displays skills found in user query, and query result counts across top 25 US tech cities.
 
 ## Setting up the project
 

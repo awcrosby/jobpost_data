@@ -2,23 +2,26 @@
 {% block content %}
   {% load my_filters %}
 
-  <h2>Enter a tech skill</h2>
+  <h2>Search jobposts for related skills + counts across cities:</h2>
 
   <form action="" method="get">
-    {% csrf_token %}
     {{ form }}
     <input type="submit" value="Enter" />
   </form>
 
   {% if query %}
-    <h5>"{{query}}" matched {{res_count}}/{{all_posts}} jobposts in the last 6 weeks across the US. Highest occuring skills in the results:</h5>
-    <div id='wordcloud'></div>
-    <!-- <div>{{words}}</div> -->
+    <section id="viz">
+      <article id="skills">
+        <h5 class="viz-header">"{{query}}" matched {{res_count}}/{{all_posts}} jobposts in the last 6 weeks across the US.</h5>
+        <h5>Highest occuring skills in the results:</h5>
+        <div id='wordcloud'></div>
+      </article>
 
-    <h4>"{{query}}" jobposts counts, top cities shown first (click legend to show/hide):</h4>
-
-    <section id="graph"><canvas id="myChart"></canvas></section>
-    <!-- <div>loc_graph_data: {{loc_graph_data}}</div> -->
+      <article>
+        <h5 class="viz-header">"{{query}}" jobpost counts, top cities shown first (click legend to show/hide):</h5>
+        <div id="graph"><canvas id="myChart"></canvas></div>
+      </article>
+    </section>
   {% endif %}
 
 {% endblock %}
@@ -27,13 +30,41 @@
 {% block javascript %}
   <!-- https://github.com/wvengen/d3-wordcloud/blob/master/README.md -->
   <script>
-    d3.wordcloud()
-     .size([600, 300])
-     .selector('#wordcloud')
-     .words({{words|safe}})
-     .scale('sqrt')
-     .spiral('archimedean')
-     .start();
+    function setWordCloud(width, height) {
+      document.getElementById('wordcloud').innerHTML = "";
+      d3.wordcloud()
+       .size([width, height])
+       .selector('#wordcloud')
+       .words({{words|safe}})
+       .scale('sqrt')
+       .spiral('archimedean')
+       .start();
+    };
+
+    // set initial size of wordcloud
+    var size = ''
+    $( document ).ready(function() {
+        if ($(this).width() >= 750) {
+            setWordCloud(600, 300);
+            size = 'large'
+        } else {
+            setWordCloud(390, 190);
+            size = 'small'
+        }
+    });
+
+    // update wordcloud size if window size changes
+    $(window).resize(function() {
+        if ($(this).width() >= 750 && size == 'small') {
+            console.log('switch to large');
+            setWordCloud(600, 300);
+            size = 'large'
+        } else if ($(this).width() < 750 && size == 'large') {
+            console.log('switch to small');
+            setWordCloud(390, 190);
+            size = 'small'
+        };
+    });
 
     var loc_posts = {{loc_graph_data|safe}}
     var ctx = document.getElementById('myChart').getContext('2d');

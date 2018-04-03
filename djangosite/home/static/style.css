@@ -20,4 +20,19 @@ table { margin-bottom: 20px; }
 .all_tasks { margin-bottom: 40px; }
 .warn { color: red; margin-bottom: 5px; }
 
+.viz-header { margin-top: 14px; max-width: 600px; }
+
+#viz { width: 100%; display: flex; flex-wrap: wrap; }
+#viz article { width: 100%; }
 #graph { width: 600px; height: 450px; }
+
+@media screen and (min-width: 1700px) { /* screens 1300 or more */
+  #viz article { width: 50%; }
+  .container { max-width: 1500px !important; }
+}
+@media screen and (max-width: 767px) { /* screens 767 or less */
+  #viz article { width: 100%; }
+  #graph { width: 100%; }
+}
+
+

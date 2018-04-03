@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponse
 from .forms import UserQueryForm, ScraperForm
@@ -28,6 +29,15 @@ db.posts.create_index('url', unique=True)
 # db.posts.drop_index('query_loc_1_title_text_skills_text')
 # import pdb; pdb.set_trace()  #### DEBUG
 
+@login_required
+def settings(request):
+    """Page to reset settings and database entries.
+
+    Returns:
+        Object for django html template
+    """
+    context = {}
+    return render(request, 'home/settings.html', context)
 
 def all_tasks(request):
     """HTTP endpoint that lists running tasks and auto-scheduled tasks.
