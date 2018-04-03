@@ -55,20 +55,19 @@
 <section class="all_tasks">
   <h3>Auto Tasks (scheduled via Celery Beat)</h3>
   <p>Add entry to <a href="/admin/django_celery_beat/periodictask/">Periodic Task table</a> for new auto task</p>
-  <table>
+  <table style="table-layout: fixed; width: 100%">
     <tr>
-      <th>Base Task</th>
-      <th>Keyword Args</th>
-      <th>Crontab Schedule</th>
-      <th>Last Run</th>
+      <th style="width: 25%">Base Task</th>
+      <th style="width: 31%">Keyword Args</th>
+      <th style="width: 23%">Crontab Schedule</th>
+      <th style="width: 21%">Last Run</th>
     </tr>
     {% for task in auto_tasks %}<tr>
-      <td>{{ task.task }}</td>
+      <td style="overflow-wrap: break-word">{{ task.task }}</td>
       <td>{{ task.kwargs }}</td>
       <td>{{ task.crontab }}</td>
       <td>{{ task.last_run_at }} UTC</td>
     </tr>{% endfor %}
-    
   </table>
 </section>
 

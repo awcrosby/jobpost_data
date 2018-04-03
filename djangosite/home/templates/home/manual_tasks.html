@@ -11,8 +11,10 @@
   </tr>
   {% for scraper, status in scraper_list %}
     <tr>
-      <td>
+      <td class="button-cell">
         <button id="button-{{scraper.id}}"
+                type="button"
+                class="btn btn-secondary"
                 app_scraper_id="{{scraper.id}}"
                 class="js-scrape">Start</button>
       </td>
