@@ -106,6 +106,9 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+
+WSGI_APPLICATION = "djangosite.wsgi.application"
 
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_RESULT_EXPIRES = 0  # prevents daily clearing of TaskResults table
