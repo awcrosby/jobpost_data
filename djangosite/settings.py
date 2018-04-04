@@ -23,7 +23,7 @@ with open(os.path.join(BASE_DIR, 'config/ansible/vars.yml')) as f:
     POSTGRES_PW = vars_dict['postgres_pw']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     '34.214.201.88'
@@ -112,3 +112,9 @@ WSGI_APPLICATION = "djangosite.wsgi.application"
 
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_RESULT_EXPIRES = 0  # prevents daily clearing of TaskResults table
+
+X_FRAME_OPTIONS = 'DENY'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
