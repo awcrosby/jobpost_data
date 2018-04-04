@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name 34.214.201.88;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        root /home/ubuntu/jobpost_data;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/home/ubuntu/jobpost_data/djangosite/djangosite.sock;
+    }
+}

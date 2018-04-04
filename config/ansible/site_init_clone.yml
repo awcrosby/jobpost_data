@@ -15,6 +15,7 @@
         - rabbitmq-server
         - supervisor
         - fail2ban
+        - nginx
 
 
 - hosts: myhost  # playbook to setup code environment

@@ -1,2 +1,2 @@
 [myhost]
-host1 ansible_ssh_host=54.245.48.169 ansible_port=22 ansible_user=ubuntu ansible_python_interpreter=/usr/bin/python3.5
+host1 ansible_ssh_host=34.214.201.88 ansible_port=22 ansible_user=ubuntu ansible_python_interpreter=/usr/bin/python3.5
