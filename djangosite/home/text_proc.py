@@ -1,27 +1,46 @@
 import pymongo
 import collections
 import time
-import nltk
 import re
 from datetime import datetime, timedelta
 from .models import QueryLoc
-# nltk.download('stopwords')
-from nltk.corpus import stopwords
 from operator import itemgetter
 
 client = pymongo.MongoClient('localhost', 27017)
 db = client.jobpost_data
 
-# extra stopwords needed when including job 'desc' along with 'skills'/'title'
-stops = set(stopwords.words('english'))
+# nltk stopwords
+stops = set(['how', 'be', 'me', 'all', 'own', 'those', "mightn't", 'needn',
+    'which', 'it', 'to', 'hers', 'my', 'then', 'other', 'mustn', 't', 'isn',
+    'wasn', 'myself', 'further', 'now', "isn't", 'from', 'more', "hadn't",
+    'whom', 'hadn', "shouldn't", 'theirs', 'what', 'has', 'if', 'because',
+    'same', 'don', 'm', 'each', 'had', 'where', 'doesn', 'again', 'not',
+    'will', 'couldn', "wouldn't", 'herself', 'are', 'itself', "you'd", 'on',
+    'that', 'a', 'haven', 'been', 'once', 'do', 'was', 'after', "don't",
+    'into', 'under', 'mightn', 'down', 'too', 'wouldn', "you'll", 'against',
+    'but', "hasn't", 'her', 'y', 'such', "she's", 'while', 'very', "aren't",
+    'they', 'and', 'should', "you're", 'nor', 'is', "you've", 've', 'over',
+    'themselves', 'were', 'at', 'yours', "won't", 'before', 'himself', 'ain',
+    "should've", 'am', 'any', "needn't", 'shan', 'few', 'i', 'the', 'most',
+    'below', 'by', "weren't", 'for', 'll', 'we', "mustn't", 'he', 'or', 'didn',
+    'hasn', 'just', 'won', 'you', 'shouldn', 'who', 'here', 'yourself', 'them',
+    're', "haven't", 'there', 'only', 'ours', 'having', 'his', 'during',
+    'until', 'being', 'its', 'can', 'this', 'through', 'aren', 'off', 'your',
+    'between', 'as', 'why', 'some', 'so', 'these', 'did', "shan't", 'with',
+    'ourselves', 'up', 'in', 'their', 'when', 'both', 'o', 'yourselves',
+    'above', "wasn't", "it's", 'than', 'him', "that'll", 'does', "doesn't",
+    'ma', 'doing', 'weren', 'out', 's', 'about', 'she', 'an', 'd', "didn't",
+    'of', "couldn't", 'have', 'our', 'no'])
+
+# extra stopwords needed for common words in job post data
 stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
-              'service', 'apply', 'design', 'build', 'system', 'testing',
-              'integration', 'field', 'documentation', 'architecture',
-              'dynamic', 'project', 'join', 'standards', 'email', 'location',
-              'performance', 'key', 'focus', 'object', 'process', 'center',
-              'server', 'components', 'scale', 'user', 'external', 'global',
-              'local', 'processing', 'call', 'configuration', 'networking',
-              'resources', 'protocols', 'frameworks', 'click'])
+    'service', 'apply', 'design', 'build', 'system', 'testing',
+    'integration', 'field', 'documentation', 'architecture',
+    'dynamic', 'project', 'join', 'standards', 'email', 'location',
+    'performance', 'key', 'focus', 'object', 'process', 'center',
+    'server', 'components', 'scale', 'user', 'external', 'global',
+    'local', 'processing', 'call', 'configuration', 'networking',
+    'resources', 'protocols', 'frameworks', 'click'])
 
 
 def db_text_search(query, total_weeks=6):
