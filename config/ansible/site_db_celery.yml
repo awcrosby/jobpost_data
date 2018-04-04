@@ -64,6 +64,25 @@
         command: migrate
         app_path: "{{dest_proj_path}}"
         virtualenv: "{{dest_proj_path}}/venv"
+    - name: Copy gunicorn service
+      become: true
+      copy:
+        src: ../gunicorn.service
+        dest: /etc/systemd/system/gunicorn.service
+    - name: Start and enable on startup gunicorn
+      become: true
+      service: name=gunicorn.service state=started enabled=yes
+    - name: Copy nginx config to replace the default
+      become: true
+      copy:
+        src: ../nginx_config_pre_ssl
+        dest: /etc/nginx/sites-available/default
+    - name: Firewall turn on and allow OpenSSH
+      become: true
+      ufw: rule=allow name=OpenSSH state=enabled
+    - name: Firewall allow nginx https and http (for redirect to ssl)
+      become: true
+      ufw: rule=allow name="Nginx Full"
 
 
 - hosts: myhost  # Supervisord + Celery config
