@@ -20,13 +20,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 client = pymongo.MongoClient('localhost', 27017)
 db = client.jobpost_data
 db.posts.create_index('url', unique=True)
-# db.posts.create_index([('posted_week', 1), ('query_loc', 1)])
-# db.posts.create_index([('posted_week', 1), ('title', pymongo.TEXT),
-#                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
-#db.posts.create_index([('title', pymongo.TEXT),
-#                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
+db.posts.create_index([('posted_week', 1)])
+db.posts.create_index([('title', pymongo.TEXT),
+                       ('skills', pymongo.TEXT), ('desc', pymongo.TEXT)])
 # db.posts.index_information()
-# db.posts.drop_index('query_loc_1_title_text_skills_text')
 # import pdb; pdb.set_trace()  #### DEBUG
 
 @login_required
