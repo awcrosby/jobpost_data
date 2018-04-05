@@ -14,9 +14,8 @@
       <td class="button-cell">
         <button id="button-{{scraper.id}}"
                 type="button"
-                class="btn btn-secondary"
                 app_scraper_id="{{scraper.id}}"
-                class="js-scrape">Start</button>
+                class="js-scrape btn btn-secondary">Start</button>
       </td>
       <td>{{scraper}}</td>
       <td>
@@ -63,7 +62,7 @@
       var task_id = $(this).attr('app_task_id');
       var scraper_id = $(this).attr('app_scraper_id');
       if ($(this).text().trim() == 'PENDING' || $(this).text().trim() == 'IN_PROGRESS') {
-        console.log('inside if pending/in_progress');
+        // console.log('inside if pending/in_progress');
         $("#button-" + scraper_id).attr('disabled', true)
         $.ajax({
           url: '{% url "get_task_progress" %}',

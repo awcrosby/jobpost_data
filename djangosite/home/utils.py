@@ -1,4 +1,4 @@
-from .models import ScraperParams, QueryLoc
+from .models import ScraperParams, QueryLoc, JobSite
 from .tasks import scrape_dice, get_stackoverflow_skills
 from django.http import HttpResponse
 from celery.result import AsyncResult
@@ -68,6 +68,12 @@ def reset_scraper_schedule(request):
     """
     data = 'error'
     if request.is_ajax():  
+        ## ensure dice entry is in database
+        dice_check = JobSite.objects.filter(name='dice')
+        if not dice_check:
+            dice = JobSite(name='dice', url='https://www.dice.com')
+            dice.save()
+
         # set/reset Crontab with many entries
         CrontabSchedule.objects.all().delete()
         for i in range(3):

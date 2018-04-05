@@ -6,7 +6,7 @@ After=network.target
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/jobpost_data
-ExecStart=/home/ubuntu/jobpost_data/venv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/home/ubuntu/jobpost_data/djangosite/djangosite.sock djangosite.wsgi:application
+ExecStart=/home/ubuntu/jobpost_data/venv/bin/gunicorn --access-logfile /home/ubuntu/jobpost_data/log/gunicorn.log --error-logfile /home/ubuntu/jobpost_data/log/gunicorn.log --workers 3 --bind unix:/home/ubuntu/jobpost_data/djangosite/djangosite.sock djangosite.wsgi:application
 
 [Install]
 WantedBy=multi-user.target
