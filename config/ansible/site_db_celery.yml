@@ -50,6 +50,10 @@
                    password={{ postgres_pw }}
                    priv=ALL
                    state=present
+    - name: Copy vars.yml file to remote
+      copy:
+        src: vars.yml
+        dest: "{{dest_proj_path}}/config/ansible/vars.yml"
     - name: Changing permission of manage.py, adding "+x"
       file:
         dest: "{{dest_proj_path}}/manage.py"
@@ -64,6 +68,8 @@
         command: migrate
         app_path: "{{dest_proj_path}}"
         virtualenv: "{{dest_proj_path}}/venv"
+
+    ### Gunicorn, Nginx, and firewall config
     - name: Copy gunicorn service
       become: true
       copy:
@@ -83,7 +89,6 @@
     - name: Firewall allow nginx https and http (for redirect to ssl)
       become: true
       ufw: rule=allow name="Nginx Full"
-
 
 - hosts: myhost  # Supervisord + Celery config
   tasks:
