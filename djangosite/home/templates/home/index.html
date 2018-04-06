@@ -45,7 +45,7 @@
     var size = ''
     $( document ).ready(function() {
         if ($(this).width() >= 750) {
-            setWordCloud(600, 300);
+            setWordCloud(900, 500);
             size = 'large'
         } else {
             setWordCloud(390, 190);
@@ -55,11 +55,11 @@
 
     // update wordcloud size if window size changes
     $(window).resize(function() {
-        if ($(this).width() >= 750 && size == 'small') {
+        if ($(this).width() >= 950 && size == 'small') {
             console.log('switch to large');
-            setWordCloud(600, 300);
+            setWordCloud(900, 500);
             size = 'large'
-        } else if ($(this).width() < 750 && size == 'large') {
+        } else if ($(this).width() < 950 && size == 'large') {
             console.log('switch to small');
             setWordCloud(390, 190);
             size = 'small'

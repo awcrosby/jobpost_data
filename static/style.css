@@ -31,19 +31,17 @@ table { margin-bottom: 20px; }
 .all_tasks { margin-bottom: 40px; }
 .warn { color: red; margin-bottom: 5px; }
 
-.viz-header { margin-top: 14px; max-width: 600px; }
+.viz-header { margin-top: 14px; max-width: 700px; }
 
 #viz { width: 100%; display: flex; flex-wrap: wrap; }
 #viz article { width: 100%; }
-#graph { width: 600px; height: 450px; }
+#graph { width: 700px; height: 450px; }
 
-@media screen and (min-width: 1700px) { /* screens 1300 or more */
+@media screen and (min-width: 2050px) { /* wide screen, 2 viz in row */
   #viz article { width: 50%; }
-  .container { max-width: 1500px !important; }
+  .container { max-width: 1950px !important; }
 }
-@media screen and (max-width: 767px) { /* screens 767 or less */
+@media screen and (max-width: 967px) { /* screens 767 or less */
   #viz article { width: 100%; }
   #graph { width: 100%; }
 }
-
-
