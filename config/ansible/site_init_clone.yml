@@ -30,10 +30,13 @@
       git:
         repo: https://github.com/awcrosby/jobpost_data.git
         dest: "{{ dest_proj_path }}"
+        update: no
     - name: Create virtual environment and install pip packages
       pip:
         requirements: "{{ dest_proj_path }}/requirements.txt"
         virtualenv: "{{ dest_proj_path }}/venv"
+    - name: Create log file
+      file: path={{ dest_proj_path }}/log/djangoapp.log state=touch mode=0666
     - name: Copy fail2ban config
       become: true
       copy:
