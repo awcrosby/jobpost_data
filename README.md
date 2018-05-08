@@ -2,6 +2,19 @@
 
 Framework to run manual tasks (click to start), and automated tasks (scheduled) configurable via the database. Applied to task of gathering job postings... Jobpost user interface displays skills found in user query, and query result counts across US tech cities.
 
+## Technical
+
+### Stack
+Linux, Nginx/Gunicorn, PostgreSQL/MongoDB, Python/Django
+
+### Additional Details
+* Webserver + framework: Nginx/Gunicorn, Python/Django
+* Task management: Celery, RabbitMQ message broker, celery beat scheduler
+* Database: PostgreSQL for Celery results, MongoDB for document storage
+* DevOps: AWS, Ansible, ufw, fail2ban
+* Dev Environment: Ubuntu, vim/tmux, github
+* UI Presentation: Bootstrap, some custom CSS
+
 ## Setting up the project
 
 Locally, set remote IP in `nginx_config_pre_ssl` and ansible `inventory`, and edit `vars.yml` to set postgres password and secret key which will be copied to remote
@@ -42,3 +55,9 @@ Go to web site in browser, go to Settings, and login with Django superuser accou
 Add entry to Admin > Scraper Params table to create a new manual task. Go to Tasks > Manual Tasks to start
 
 You can now go to Jobposts and query the dataset, which looks at data posted from 6 weeks ago to 1 week ago
+
+___
+
+##### Wordcloud libraries used:
+* https://github.com/wvengen/d3-wordcloud
+* https://github.com/jasondavies/d3-cloud

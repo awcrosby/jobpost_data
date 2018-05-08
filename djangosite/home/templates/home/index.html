@@ -44,7 +44,7 @@
     // set initial size of wordcloud
     var size = ''
     $( document ).ready(function() {
-        if ($(this).width() >= 750) {
+        if ($(this).width() >= 975) {
             setWordCloud(900, 500);
             size = 'large'
         } else {
@@ -55,11 +55,11 @@
 
     // update wordcloud size if window size changes
     $(window).resize(function() {
-        if ($(this).width() >= 950 && size == 'small') {
+        if ($(this).width() >= 975 && size == 'small') {
             console.log('switch to large');
             setWordCloud(900, 500);
             size = 'large'
-        } else if ($(this).width() < 950 && size == 'large') {
+        } else if ($(this).width() < 975 && size == 'large') {
             console.log('switch to small');
             setWordCloud(390, 190);
             size = 'small'
@@ -82,7 +82,7 @@
         '#f16913', //o
         '#4eb3d3', //b
         '#fb6a4a', //r
-        '#78c679', //g 
+        '#78c679', //g
         '#9e9ac8', //p
         '#fd8d3c', //o
         '#7bccc4', //b
