@@ -5,6 +5,11 @@ import re
 from datetime import datetime, timedelta
 from .models import QueryLoc
 from operator import itemgetter
+import sys
+import logging
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 client = pymongo.MongoClient('localhost', 27017)
 db = client.jobpost_data
@@ -45,13 +50,18 @@ stops |= set(['', 'experience', 'client', 'position', 'include', 'time',
 
 def db_text_search(query, total_weeks=6):
     """Return mongo docs via text search for given number of weeks """
-    start = time.time()
     list_of_weeks = get_list_of_weeks(total_weeks)
-    print(list_of_weeks)
+    logger.info('starting db_text_search() for list_of_weeks: {}'.format(list_of_weeks))
     total_count =  db.posts.find({
         'posted_week': {'$in': list_of_weeks}
     }).count()
-    print('count all in weeks TIME: {:.3f}s'.format(time.time()-start))
+
+    start = time.time()
+    match_count = db.posts.find({
+        'posted_week': {'$in': list_of_weeks},
+        '$text': {'$search': query}
+    }).count()
+    logger.info('got match_count of {} in TIME: {:.3f}s'.format(match_count, time.time()-start))
 
     start = time.time()
     cur = db.posts.aggregate([
@@ -59,17 +69,10 @@ def db_text_search(query, total_weeks=6):
             'posted_week': {'$in': list_of_weeks},
             '$text': {'$search': query}}
         },
-        {'$sample': {'size': 1000}}
+        {'$sample': {'size': 10}}
     ])
     docs = list(cur)
-    print('text search list() TIME: {:.3f}s'.format(time.time()-start))
-
-    start = time.time()
-    match_count = db.posts.find({
-        'posted_week': {'$in': list_of_weeks},
-        '$text': {'$search': query}
-    }).count()
-    print('text search count() TIME: {:.3f}s'.format(time.time()-start))
+    logger.info('sampled query matches in TIME: {:.3f}s'.format(time.time()-start))
 
     return {'match_count': match_count,
             'total_count': total_count,
@@ -142,9 +145,8 @@ def get_word_count(mongo_docs):
             docwords = docwords.union(set(fieldwords))
         allwords.extend(docwords)
         if time.time()-start > 30:
-            print('timeout while scanning mongo docs')
+            logger.error('timeout while scanning mongo docs')
             return 'timeout'
-    #print('parse {}, TIME: {:.3f}s'.format(len(allwords), time.time()-start))
 
     allwords = [w.lower() for w in allwords]
     allwords = [w for w in allwords if w not in stops]
@@ -155,7 +157,6 @@ def get_word_count(mongo_docs):
     allwords = [w for w in allwords if w in whitelist]
 
     count = collections.Counter(allwords)
-    #print('counter TIME: {:.3f}s'.format(time.time()-start))
     return count.most_common(80)
 
 

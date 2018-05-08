@@ -9,9 +9,15 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 
 import os
 import yaml
+import logging
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+logging.basicConfig(filename=BASE_DIR + '/log/djangoapp.log',
+                    format='%(asctime)s %(levelname)s: %(message)s',
+                    level=logging.INFO)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/

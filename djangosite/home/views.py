@@ -13,6 +13,12 @@ from django_celery_beat.models import PeriodicTask
 import pymongo
 import time
 import os
+import sys
+import logging
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -130,11 +136,11 @@ def index(request):
     word_counts = get_word_count(data['docs'])
     word_counts = [tup for tup in word_counts if tup[0] != query.lower()]
     words = [{'text': tup[0], 'size': tup[1]} for tup in word_counts]
-    print('get_word_count() TIME: {:.3f}s'.format(time.time()-start))
+    logging.info('get_word_count() TIME: {:.3f}s'.format(time.time()-start))
 
     start = time.time()
     loc_graph_data = get_loc_week_counts(query)
-    print('get_loc_week_counts() TIME: {:.3f}s'.format(time.time()-start))
+    logging.info('get_loc_week_counts() TIME: {:.3f}s'.format(time.time()-start))
 
     # PREPARE DATA FOR TEMPLATE
     context = {'query': query, 'res_count': data['match_count'],

@@ -12,7 +12,12 @@ from datetime import datetime, timedelta
 import re
 import traceback
 from time import sleep
+import sys
+import logging
 
+# stdout logging will go to celery default log celeryd.log
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 @shared_task
 def get_stackoverflow_skills():
@@ -25,17 +30,16 @@ def get_stackoverflow_skills():
 
     skills = []
     base_url = 'https://stackoverflow.com'
-    print('starting stackoverflow scrape of tags')
+    logger.info('starting stackoverflow scrape of tags')
     for n in range(60):
         r = requests.get(base_url + '/tags?page={}&tab=popular'.format(n))
         soup = BeautifulSoup(r.text, 'html.parser')
         tags = [t.text for t in soup.find_all('a', 'post-tag')]
         skills.extend(tags)
-        print('.')
 
     data = {'source': 'stackoverflow', 'skills': skills}
     db.skills.update({'source': 'stackoverflow'}, data, upsert=True)
-    print('completed stackoverflow task: {} skill tags'.format(len(skills)))
+    logger.info('completed stackoverflow task: {} skill tags'.format(len(skills)))
 
 
 @shared_task(bind=True)
@@ -95,10 +99,11 @@ def scrape_dice(self, query, query_loc, param_id=None):
                                   meta={'progress': (current/total)*100})
         except Exception as e:
             traceback.print_exc()
-            print("\nGENERAL SCRAPER ERR page: {}\n".format(page))
+            logger.error("GENERAL SCRAPER ERR page: {}".format(page))
+    logger.info('for {}: scraped {} pages of links'.format(query_loc,
+                                                           len(pagelinks)))
 
     # get all job dicts and put into jobs list
-    print('for {}: scraped {}pages of links'.format(query_loc, len(pagelinks)))
     scrape_count = 0
     for count, joblink in enumerate(joblinks):
         # track and set progress
@@ -107,7 +112,7 @@ def scrape_dice(self, query, query_loc, param_id=None):
             self.update_state(state='IN_PROGRESS',
                               meta={'progress': (current/total)*100})
         if (count+1) % 100 == 0:
-            print('for {}: {} joblinks processed, {} joblinks scraped'.format(
+            logger.info('for {}: {} joblinks processed, {} joblinks scraped'.format(
                 query_loc, count+1, scrape_count))
 
         # exit if url already in database
@@ -186,9 +191,9 @@ def scrape_dice(self, query, query_loc, param_id=None):
             db.posts.update({'url': job['url']}, job, upsert=True)
         except Exception as e:
             traceback.print_exc()
-            print("\nGENERAL SCRAPER ERR job['url']: {}\n".format(job['url']))
+            logger.error("GENERAL SCRAPER ERR job['url']: {}".format(job['url']))
 
-    print("\nlen(joblinks) = {}".format(len(joblinks)))
+    logger.info("len(joblinks) = {}".format(len(joblinks)))
     if param_id:
         s = ScraperParams.objects.get(id=param_id)
         s.last_queried = datetime.utcnow()
